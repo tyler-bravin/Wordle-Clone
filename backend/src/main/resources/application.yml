@@ -16,6 +16,10 @@ wordle:
   # Fixed shuffle seed so the daily word order is stable across restarts but not
   # simply alphabetical (the source answer list is alphabetically sorted).
   shuffle-seed: ${WORDLE_SHUFFLE_SEED:20240101}
+  # External dictionary API used for the post-game "what does this word mean"
+  # lookup. Free, no API key required. This isn't on any gameplay-critical path -
+  # see DictionaryService for why that matters.
+  dictionary-api-base-url: ${WORDLE_DICTIONARY_API_URL:https://api.dictionaryapi.dev/api/v2/entries/en}
 
 management:
   endpoints:
