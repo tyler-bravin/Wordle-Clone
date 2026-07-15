@@ -29,7 +29,7 @@ A Wordle clone with a **Java/Spring Boot** backend and a **React/TypeScript** fr
 * **Skip-Letter Input**: Press Space to leave a gap for a letter you're unsure of and keep typing, then click any tile in the row to jump back and fill it in - à la [lessgames.com's Wordless](https://lessgames.com/wordless).
 * **Fully Fluid Layout**: Tile and key sizing scale continuously with viewport width (`clamp()`), rather than jumping at a single breakpoint, so it holds up from small phones to ultrawide monitors.
 * **Subtle Sound Effects**: Synthesized on the fly with the Web Audio API rather than sample files - soft key ticks, per-tile reveal tones pitched by result, and a short win/lose sting timed to land after the flip cascade finishes. A `[sound]`/`[muted]` toggle in the titlebar turns it all off, persisted in `localStorage`.
-* **Dockerized & Coolify-Ready**: Multi-stage Dockerfiles for both services plus a `docker-compose.yml` that doubles as the Coolify deployment target — see the Deployment section below.
+* **Dockerized & Coolify-Ready**: Multi-stage Dockerfiles for both services plus a `docker-compose.yaml` that doubles as the Coolify deployment target — see the Deployment section below.
 
 ---
 
@@ -102,7 +102,7 @@ Follow these steps to get a local copy of the project up and running.
 
 This assumes a Coolify instance with a domain you control and DNS already pointed at it.
 
-1.  **Create a new resource in Coolify**, type **Docker Compose**, pointed at this repo's root `docker-compose.yml`.
+1.  **Create a new resource in Coolify**, type **Docker Compose**, pointed at this repo's root `docker-compose.yaml`.
 2.  **Assign domains** per service in the Coolify UI — `backend` (e.g. `wordle-api.yourdomain.dev`) and `frontend` (e.g. `wordle.yourdomain.dev`). Coolify provisions Let's Encrypt certs and Traefik routing automatically.
 3.  **Set environment variables** on `backend`:
     * `WORDLE_ALLOWED_ORIGINS` = the frontend's final domain — the API rejects browser requests from anywhere else.
