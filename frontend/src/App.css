@@ -3,10 +3,23 @@
   width: 100%;
   min-height: 100vh;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
   padding: 40px 16px 56px;
   overflow-x: hidden;
+}
+
+.app__disclaimer {
+  position: relative;
+  z-index: 1;
+  max-width: 540px;
+  margin: 18px 0 0;
+  padding: 0 12px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
 }
 
 /* Soft ambient glow behind the terminal window - the one bit of atmosphere

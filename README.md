@@ -1,5 +1,13 @@
 # Wordle Clone
 
+> **This is an unofficial portfolio/learning project.** "Wordle" is a
+> trademark of The New York Times Company. This project is not affiliated
+> with, endorsed by, or sponsored by the NYT or the creators of Wordle - it
+> recreates the *mechanics* of the game to demonstrate full-stack
+> development, and isn't intended for public or commercial use. See
+> `LICENSE` for what license terms actually apply to (and don't apply to)
+> this repo.
+
 A Wordle clone with **Daily** (one shared word per day, like the original) and
 **Endless** (unlimited rounds, no repeats until you've seen every word) modes.
 
