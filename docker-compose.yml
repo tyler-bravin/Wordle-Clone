@@ -1,0 +1,34 @@
+# Local full-stack setup: `docker compose up --build` gets you the whole app
+# at http://localhost:5173 talking to the API at http://localhost:8080.
+#
+# For Coolify: point a "Docker Compose" resource at this file, then in the
+# Coolify UI set:
+#   - a domain for `frontend` (this becomes the site users visit)
+#   - a domain for `backend` (this becomes VITE_API_BASE_URL below)
+#   - WORDLE_ALLOWED_ORIGINS on `backend` to the frontend's final domain
+# Coolify handles TLS/Traefik routing per-service automatically once domains
+# are assigned - see README.md "Deploying to Coolify" for the full walkthrough.
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      # Comma-separated list of origins allowed to call this API.
+      WORDLE_ALLOWED_ORIGINS: ${WORDLE_ALLOWED_ORIGINS:-http://localhost:5173}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Must be reachable from the *browser*, not from inside the backend
+        # container - use the backend's public URL, not its service name.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
