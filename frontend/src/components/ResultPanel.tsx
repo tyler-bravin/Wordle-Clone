@@ -1,6 +1,7 @@
 import type { GameMode, GameStatus } from "../types/game";
 import type { Stats } from "../hooks/useStats";
 import { Definition } from "./Definition";
+import { Countdown } from "./Countdown";
 import "./ResultPanel.css";
 
 interface ResultPanelProps {
@@ -9,10 +10,19 @@ interface ResultPanelProps {
   answer: string;
   guessCount: number;
   stats: Stats;
+  nextDailyResetAt: string | null;
   onPlayAgain: () => void;
 }
 
-export function ResultPanel({ mode, status, answer, guessCount, stats, onPlayAgain }: ResultPanelProps) {
+export function ResultPanel({
+  mode,
+  status,
+  answer,
+  guessCount,
+  stats,
+  nextDailyResetAt,
+  onPlayAgain,
+}: ResultPanelProps) {
   const winPct = stats.gamesPlayed === 0 ? 0 : Math.round((stats.gamesWon / stats.gamesPlayed) * 100);
   const maxDistribution = Math.max(1, ...stats.guessDistribution);
 
@@ -80,7 +90,17 @@ export function ResultPanel({ mode, status, answer, guessCount, stats, onPlayAga
           ./wordle --next
         </button>
       ) : (
-        <p className="result-panel__next">next daily word in ~24h</p>
+        <p className="result-panel__next">
+          {nextDailyResetAt ? (
+            <>
+              next daily word in <span className="result-panel__countdown">
+                <Countdown target={nextDailyResetAt} />
+              </span>
+            </>
+          ) : (
+            "next daily word in ~24h"
+          )}
+        </p>
       )}
     </div>
   );

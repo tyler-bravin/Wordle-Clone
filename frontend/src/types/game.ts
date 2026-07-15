@@ -19,6 +19,8 @@ export interface GameState {
   guesses: GuessResult[];
   status: GameStatus;
   answer: string | null;
+  /** ISO instant of the next UTC-midnight Daily reset. Null for ENDLESS games. */
+  nextDailyResetAt: string | null;
 }
 
 export interface EndlessSessionState {

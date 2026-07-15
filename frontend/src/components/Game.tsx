@@ -60,6 +60,7 @@ export function Game({ mode, onModeChange }: GameProps) {
           answer={game.answer}
           guessCount={game.guesses.length}
           stats={stats}
+          nextDailyResetAt={game.nextDailyResetAt}
           onPlayAgain={startNewGame}
         />
       ) : (

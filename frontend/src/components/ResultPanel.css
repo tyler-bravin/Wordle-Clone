@@ -144,3 +144,8 @@
   color: var(--text-dim);
   margin: 0;
 }
+
+.result-panel__countdown {
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+}
