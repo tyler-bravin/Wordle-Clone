@@ -12,7 +12,9 @@ import dev.tylerbravin.wordle.exception.GameNotFoundException;
 import dev.tylerbravin.wordle.exception.WordNotInDictionaryException;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,11 +52,17 @@ public class GameService {
     /**
      * Starts today's Daily game. Every player who calls this on the same calendar
      * day gets a fresh session for the same answer word.
+     * <p>
+     * "Today" is pinned to UTC rather than the host's default timezone, since that
+     * default can silently differ between local dev, Docker, and wherever this
+     * ends up deployed - and the day boundary needs to be a single, predictable
+     * moment for the {@code nextDailyResetAt} countdown in {@link #toResponse} to
+     * mean anything.
      *
      * @return state for the newly created game
      */
     public GameStateResponse startDailyGame() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
         String answer = wordService.wordForDay(today);
         long roundNumber = wordService.dayNumber(today);
 
@@ -160,6 +168,7 @@ public class GameService {
 
     private GameStateResponse toResponse(GameSession session) {
         String revealedAnswer = session.isFinished() ? session.answer() : null;
+        Instant nextDailyResetAt = session.mode() == GameMode.DAILY ? nextUtcMidnight() : null;
         return new GameStateResponse(
                 session.id(),
                 session.mode(),
@@ -168,7 +177,13 @@ public class GameService {
                 session.maxGuesses(),
                 session.guesses(),
                 session.status(),
-                revealedAnswer
+                revealedAnswer,
+                nextDailyResetAt
         );
+    }
+
+    /** The next UTC-midnight boundary from right now - i.e. when the next Daily word unlocks. */
+    private Instant nextUtcMidnight() {
+        return LocalDate.now(ZoneOffset.UTC).plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 }
