@@ -16,6 +16,12 @@ function makeEmptyLetters(wordLength: number): string[] {
   return Array.from({ length: wordLength }, () => "");
 }
 
+// Must match Tile.css's transition duration and Tile.tsx's stagger multiplier -
+// kept here as named constants so the reveal-tone timing below has one obvious
+// place to update if the flip's pacing ever changes.
+const TILE_FLIP_DURATION_MS = 650;
+const TILE_FLIP_STAGGER_MS = 240;
+
 /**
  * Drives a single mode's game session: bootstrapping/resuming on mount,
  * tracking the in-progress guess, and submitting guesses to the backend.
@@ -187,19 +193,19 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
       resetInput(updated.wordLength);
 
       // Each tile's color only actually swaps at the midpoint of its flip
-      // (see Tile.css) - 240ms into its own 480ms animation, offset by its
-      // column's stagger delay (180ms per column, same stagger Tile.tsx uses
-      // for animationDelay). Timing the tone to that same instant, rather
-      // than to when the guess is submitted, is what makes it read as "this
-      // tile just revealed" instead of a burst of sound before anything's
-      // visibly happened.
+      // (see Tile.css/Tile.tsx) - half TILE_FLIP_DURATION_MS into its own
+      // flip, offset by its column's stagger delay. Timing the tone to that
+      // same instant, rather than to when the guess is submitted, is what
+      // makes it read as "this tile just revealed" instead of a burst of
+      // sound before anything's visibly happened.
       const latestGuess = updated.guesses[updated.guesses.length - 1];
       latestGuess.results.forEach((result, i) => {
-        sound.tileReveal(result, i * 180 + 240);
+        sound.tileReveal(result, i * TILE_FLIP_STAGGER_MS + TILE_FLIP_DURATION_MS / 2);
       });
 
       if (updated.status === "WON" || updated.status === "LOST") {
-        const cascadeEndMs = (latestGuess.results.length - 1) * 180 + 480 + 150;
+        const cascadeEndMs =
+          (latestGuess.results.length - 1) * TILE_FLIP_STAGGER_MS + TILE_FLIP_DURATION_MS + 150;
         setTimeout(() => {
           if (updated.status === "WON") sound.win();
           else sound.lose();

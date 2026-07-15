@@ -1,14 +1,52 @@
 .tile {
+  position: relative;
   width: var(--tile-size);
   height: var(--tile-size);
+  /* 3D context for the flipper's rotation - without this the flip would
+     look like a flat horizontal squish instead of a card turning in depth. */
+  perspective: 600px;
+}
+
+.tile--clickable {
+  cursor: pointer;
+}
+
+.tile__flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  /* Slower and more deliberate than a typical UI transition - this is the
+     one animation in the whole app meant to be watched, not just glanced at. */
+  transition: transform 650ms ease-in-out;
+}
+
+.tile__flipper--flipped {
+  transform: rotateX(180deg);
+}
+
+.tile__face {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Hides whichever face is rotated away from the viewer - this is what
+     makes the reveal actually invisible until the flip brings it around,
+     rather than both faces just being stacked on top of each other. */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   border: 2px solid var(--border-strong);
   border-radius: 6px;
-  background: var(--tile-bg, transparent);
-  box-shadow: var(--tile-shadow, none);
+  background: transparent;
   transition: border-color 120ms ease, transform 100ms ease;
+}
+
+.tile__face--back {
+  /* Pre-rotated 180° so that once the flipper itself reaches 180°, this
+     face's *net* rotation is back to 0 (facing the viewer) while the front
+     face's net rotation is 180 (facing away, hidden by backface-visibility). */
+  transform: rotateX(180deg);
 }
 
 .tile__letter {
@@ -17,139 +55,48 @@
   /* Scales with the tile itself so text never overflows a shrunk tile
      on small screens, or looks undersized on large ones. */
   font-size: calc(var(--tile-size) * 0.42);
-  color: var(--tile-text, var(--text));
+  color: var(--text);
   text-transform: uppercase;
 }
 
-.tile--filled {
+.tile__face--filled {
   border-color: var(--border-strong);
 }
 
-.tile--clickable {
-  cursor: pointer;
-}
-
-.tile--cursor {
+.tile__face--cursor {
   border-color: var(--amber);
   transform: scale(1.05);
   box-shadow: 0 0 0 3px rgba(232, 163, 61, 0.15);
 }
 
-/* Static end states - applied once a reveal animation finishes (see Tile.tsx's
-   onAnimationEnd). Plain properties, no custom-property/keyframe dependency,
-   so there's nothing for animation-fill-mode's cross-browser quirks to affect. */
-.tile--correct {
+/* Revealed colors - plain, static, never animated. Only the flipper's
+   rotation ever changes; these faces just sit at their final appearance
+   the whole time, waiting to be rotated into view. */
+.tile__face--correct {
   background: var(--correct);
   border-color: var(--correct);
   box-shadow: 0 2px 8px -2px rgba(76, 154, 91, 0.5);
 }
 
-.tile--correct .tile__letter {
+.tile__face--correct .tile__letter {
   color: #14150f;
 }
 
-.tile--present {
+.tile__face--present {
   background: var(--present);
   border-color: var(--present);
   box-shadow: 0 2px 8px -2px rgba(201, 154, 63, 0.5);
 }
 
-.tile--present .tile__letter {
+.tile__face--present .tile__letter {
   color: #14150f;
 }
 
-.tile--absent {
+.tile__face--absent {
   background: var(--surface-raised);
   border-color: var(--surface-raised);
 }
 
-.tile--absent .tile__letter {
+.tile__face--absent .tile__letter {
   color: var(--text-dim);
-}
-
-/*
- * Each revealed state gets its own flip animation rather than a shared
- * "flip" animation plus a separately-applied color class. That separation
- * was the bug: background/border/text color were static CSS the instant
- * React swapped the class, fully visible from frame zero, while the flip
- * played on top of an already-revealed tile - no suspense, just a spinning
- * answer.
- *
- * Here the color-affecting custom properties (--tile-bg/--tile-border/
- * --tile-text/--tile-shadow) are only assigned inside each @keyframes block,
- * at the 50% mark where the tile is rotated edge-on (rotateX(90deg)) and
- * effectively a sliver - the same trick the real game uses. Since these are
- * plain, unregistered custom properties (no @property), the browser doesn't
- * interpolate them smoothly between keyframes; it holds the prior value and
- * switches discretely the moment a keyframe defines a new one. That means
- * the tile stays looking exactly like its pre-guess self for the entire
- * first half of the flip, snaps to its true color right as it's turned away
- * from the viewer, and stays that color as it rotates back into view.
- */
-.tile--reveal-correct,
-.tile--reveal-present,
-.tile--reveal-absent {
-  animation-duration: 480ms;
-  animation-timing-function: ease;
-  animation-fill-mode: forwards;
-  border-color: var(--tile-border, var(--border-strong));
-}
-
-.tile--reveal-correct {
-  animation-name: reveal-correct;
-}
-
-.tile--reveal-present {
-  animation-name: reveal-present;
-}
-
-.tile--reveal-absent {
-  animation-name: reveal-absent;
-}
-
-@keyframes reveal-correct {
-  0% {
-    transform: rotateX(0deg);
-  }
-  50% {
-    transform: rotateX(90deg);
-    --tile-bg: var(--correct);
-    --tile-border: var(--correct);
-    --tile-text: #14150f;
-    --tile-shadow: 0 2px 8px -2px rgba(76, 154, 91, 0.5);
-  }
-  100% {
-    transform: rotateX(0deg);
-  }
-}
-
-@keyframes reveal-present {
-  0% {
-    transform: rotateX(0deg);
-  }
-  50% {
-    transform: rotateX(90deg);
-    --tile-bg: var(--present);
-    --tile-border: var(--present);
-    --tile-text: #14150f;
-    --tile-shadow: 0 2px 8px -2px rgba(201, 154, 63, 0.5);
-  }
-  100% {
-    transform: rotateX(0deg);
-  }
-}
-
-@keyframes reveal-absent {
-  0% {
-    transform: rotateX(0deg);
-  }
-  50% {
-    transform: rotateX(90deg);
-    --tile-bg: var(--surface-raised);
-    --tile-border: var(--surface-raised);
-    --tile-text: var(--text-dim);
-  }
-  100% {
-    transform: rotateX(0deg);
-  }
 }

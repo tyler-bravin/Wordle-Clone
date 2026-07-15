@@ -5,76 +5,74 @@ import "./Tile.css";
 interface TileProps {
   letter: string;
   state: LetterResult | "empty" | "filled";
-  /** Reveal animation delay index within the row, in tile positions. */
+  /** Stagger index within the row - each tile's flip is delayed this many
+   *  positions' worth of time after the row is submitted. */
   delay?: number;
   /** Whether this is the slot the next typed letter will land in. */
   isCursor?: boolean;
   onClick?: () => void;
 }
 
-/** Classes that own the flip + mid-animation color swap (see Tile.css). */
-const REVEAL_ANIMATION_CLASS: Record<string, string> = {
-  CORRECT: "tile--reveal-correct",
-  PRESENT: "tile--reveal-present",
-  ABSENT: "tile--reveal-absent",
-};
-
 /**
- * Plain, static classes with directly-set background/border/text colors -
- * no @keyframes, no custom properties. Swapped in once the flip animation
- * completes.
+ * Renders as a physical two-sided flip card (front face = unrevealed look,
+ * back face = revealed color), rotated in 3D via `transform`, rather than
+ * animating color via custom properties in a @keyframes block.
  *
- * This split exists because `animation-fill-mode: forwards` isn't reliable
- * for *unregistered* CSS custom properties (the --tile-bg/--tile-border/etc.
- * technique the reveal animation uses to hide the color swap mid-flip) -
- * some browsers don't keep applying the last keyframe's custom property
- * values once the animation finishes, so the tile would flip, reveal its
- * color for an instant, then visually reset to blank. Handling "what
- * persists after the animation" with a normal class swap on `onAnimationEnd`
- * sidesteps that inconsistency entirely, since a plain class has no such
- * caveat.
+ * That's a deliberate do-over from an earlier version: browsers don't
+ * reliably persist *custom property* values set inside keyframes once
+ * `animation-fill-mode: forwards` should be holding them, which showed up
+ * as the reveal color flickering off right after each tile finished
+ * flipping. A `transform` on the other hand is a completely ordinary,
+ * fully-interpolated CSS property with no such caveat - so the only thing
+ * that ever animates here is `rotateX`, and the "reveal" is really just
+ * which of the two static, never-animated faces is rotated into view.
  */
-const FINAL_CLASS: Record<string, string> = {
-  CORRECT: "tile--correct",
-  PRESENT: "tile--present",
-  ABSENT: "tile--absent",
-};
-
-const STATE_CLASS: Record<string, string> = {
-  empty: "tile--empty",
-  filled: "tile--filled",
-};
-
 export function Tile({ letter, state, delay = 0, isCursor = false, onClick }: TileProps) {
   const isRevealed = state === "CORRECT" || state === "PRESENT" || state === "ABSENT";
-  const [animationDone, setAnimationDone] = useState(false);
+  const [flipped, setFlipped] = useState(false);
 
-  // A given tile cell is only ever reused for a genuinely different letter
-  // when a row resets between games, at which point it should be able to
-  // animate again rather than staying stuck on "done" from a previous game.
   useEffect(() => {
-    setAnimationDone(false);
-  }, [state, letter]);
+    if (!isRevealed) {
+      setFlipped(false);
+      return;
+    }
+    // Flip on the frame *after* mount, so the browser paints the unflipped
+    // state first - flipping in the same commit would give the transition
+    // nothing to animate from, and it'd just jump straight to the end state.
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => setFlipped(true));
+    });
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+    };
+  }, [isRevealed, letter, state]);
 
-  const classes = ["tile"];
-  if (isRevealed) {
-    classes.push(animationDone ? FINAL_CLASS[state] : REVEAL_ANIMATION_CLASS[state]);
-  } else {
-    classes.push(STATE_CLASS[state]);
+  const frontClasses = ["tile__face", "tile__face--front"];
+  if (!isRevealed) {
+    frontClasses.push(state === "empty" ? "tile__face--empty" : "tile__face--filled");
   }
-  if (isCursor) classes.push("tile--cursor");
-  if (onClick) classes.push("tile--clickable");
+  if (isCursor) frontClasses.push("tile__face--cursor");
+
+  const hostClasses = ["tile"];
+  if (onClick) hostClasses.push("tile--clickable");
 
   return (
-    <div
-      className={classes.join(" ")}
-      style={isRevealed && !animationDone ? { animationDelay: `${delay * 180}ms` } : undefined}
-      onClick={onClick}
-      onAnimationEnd={() => {
-        if (isRevealed) setAnimationDone(true);
-      }}
-    >
-      <span className="tile__letter">{letter}</span>
+    <div className={hostClasses.join(" ")} onClick={onClick}>
+      <div
+        className={`tile__flipper ${flipped ? "tile__flipper--flipped" : ""}`}
+        style={isRevealed ? { transitionDelay: `${delay * 240}ms` } : undefined}
+      >
+        <div className={frontClasses.join(" ")}>
+          <span className="tile__letter">{letter}</span>
+        </div>
+        {isRevealed && (
+          <div className={`tile__face tile__face--back tile__face--${state.toLowerCase()}`}>
+            <span className="tile__letter">{letter}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
