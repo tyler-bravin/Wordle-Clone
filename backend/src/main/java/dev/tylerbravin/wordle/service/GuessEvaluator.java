@@ -22,6 +22,12 @@ import java.util.Map;
 @Component
 public class GuessEvaluator {
 
+    /**
+     * @param guess  the submitted guess, must be the same length as {@code answer}
+     * @param answer the target word to score against
+     * @return per-letter feedback, one entry per character of {@code guess}, in order
+     * @throws IllegalArgumentException if {@code guess} and {@code answer} differ in length
+     */
     public List<LetterResult> evaluate(String guess, String answer) {
         int length = answer.length();
         if (guess.length() != length) {

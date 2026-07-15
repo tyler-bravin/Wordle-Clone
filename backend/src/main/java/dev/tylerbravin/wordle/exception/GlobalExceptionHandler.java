@@ -10,6 +10,11 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Translates domain exceptions into consistent JSON error bodies of the shape
+ * {@code {timestamp, status, error, message}}, so the frontend can render
+ * {@code message} directly without knowing about individual exception types.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -20,6 +25,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(GameNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleGameNotFound(GameNotFoundException ex) {
+        return errorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(PlayerNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handlePlayerNotFound(PlayerNotFoundException ex) {
         return errorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 

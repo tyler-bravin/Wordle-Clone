@@ -4,6 +4,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.LocalDate;
 
+/**
+ * Binds the {@code wordle.*} properties from {@code application.yml}.
+ *
+ * @param maxGuesses  how many guesses a player gets before a game is lost
+ * @param wordLength  length of answer/guess words (the dictionaries assume 5)
+ * @param epochDate   fixed reference date the Daily word cycle counts from;
+ *                    changing this after launch reshuffles which word falls on which day
+ * @param shuffleSeed fixed seed used to shuffle the Daily answer order at startup
+ */
 @ConfigurationProperties(prefix = "wordle")
 public record GameProperties(
         int maxGuesses,

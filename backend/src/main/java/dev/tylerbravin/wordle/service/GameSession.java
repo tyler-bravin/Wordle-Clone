@@ -1,31 +1,34 @@
 package dev.tylerbravin.wordle.service;
 
+import dev.tylerbravin.wordle.dto.GameMode;
 import dev.tylerbravin.wordle.dto.GameStatus;
 import dev.tylerbravin.wordle.dto.GuessResult;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Server-side record of a single game in progress. The answer is never sent to the
- * client until the game ends, so guesses can't be inferred by inspecting responses.
+ * Server-side record of a single game in progress, for either {@link GameMode}.
+ * The answer is never exposed to the client until the game ends (see
+ * {@link GameService#toResponse}), so it can't be inferred by inspecting responses
+ * mid-game.
  */
 class GameSession {
 
     private final UUID id;
-    private final LocalDate date;
-    private final long dayNumber;
+    private final GameMode mode;
+    /** Calendar day index for DAILY games, or shuffle-bag position for ENDLESS games. */
+    private final long roundNumber;
     private final String answer;
     private final int maxGuesses;
     private final List<GuessResult> guesses = new ArrayList<>();
     private GameStatus status = GameStatus.IN_PROGRESS;
 
-    GameSession(UUID id, LocalDate date, long dayNumber, String answer, int maxGuesses) {
+    GameSession(UUID id, GameMode mode, long roundNumber, String answer, int maxGuesses) {
         this.id = id;
-        this.date = date;
-        this.dayNumber = dayNumber;
+        this.mode = mode;
+        this.roundNumber = roundNumber;
         this.answer = answer;
         this.maxGuesses = maxGuesses;
     }
@@ -34,12 +37,12 @@ class GameSession {
         return id;
     }
 
-    LocalDate date() {
-        return date;
+    GameMode mode() {
+        return mode;
     }
 
-    long dayNumber() {
-        return dayNumber;
+    long roundNumber() {
+        return roundNumber;
     }
 
     String answer() {
