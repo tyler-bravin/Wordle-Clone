@@ -9,9 +9,9 @@ interface TileProps {
 }
 
 const STATE_CLASS: Record<string, string> = {
-  CORRECT: "tile--correct",
-  PRESENT: "tile--present",
-  ABSENT: "tile--absent",
+  CORRECT: "tile--reveal-correct",
+  PRESENT: "tile--reveal-present",
+  ABSENT: "tile--reveal-absent",
   empty: "tile--empty",
   typing: "tile--typing",
 };
@@ -21,7 +21,7 @@ export function Tile({ letter, state, delay = 0 }: TileProps) {
 
   return (
     <div
-      className={`tile ${STATE_CLASS[state]} ${isRevealed ? "tile--reveal" : ""}`}
+      className={`tile ${STATE_CLASS[state]}`}
       style={isRevealed ? { animationDelay: `${delay * 180}ms` } : undefined}
     >
       <span className="tile__letter">{letter}</span>
