@@ -1,16 +1,13 @@
 .result-panel {
   width: 100%;
-  max-width: 520px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-top: none;
-  padding: 16px;
+  border-top: 1px solid var(--border);
+  padding: 20px 20px 22px;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
 }
 
 .result-panel__line {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
 }
 
 .result-panel__prompt {
@@ -41,48 +38,48 @@
 .result-panel__divider {
   height: 1px;
   background: var(--border);
-  margin: 14px 0;
+  margin: 18px 0;
 }
 
 .result-panel__heading {
   color: var(--text-dim);
-  margin: 0 0 12px;
+  margin: 0 0 16px;
 }
 
 .result-panel__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 18px;
+  gap: 10px;
+  margin-bottom: 22px;
   text-align: center;
 }
 
 .result-panel__stat {
   display: block;
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text);
 }
 
 .result-panel__stat-label {
   display: block;
-  font-size: 0.65rem;
-  color: var(--text-faint);
-  margin-top: 2px;
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin-top: 3px;
 }
 
 .result-panel__distribution {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 18px;
+  gap: 6px;
+  margin-bottom: 22px;
 }
 
 .dist-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .dist-row__label {
@@ -96,10 +93,10 @@
 
 .dist-row__bar {
   background: var(--border-strong);
-  min-width: 22px;
-  padding: 2px 6px;
+  min-width: 24px;
+  padding: 4px 8px;
   text-align: right;
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 .dist-row__bar--current {
@@ -108,7 +105,7 @@
 
 .dist-row__count {
   color: var(--text);
-  font-size: 0.75rem;
+  font-size: 0.78rem;
 }
 
 .dist-row__bar--current .dist-row__count {
@@ -117,23 +114,29 @@
 
 .result-panel__action {
   width: 100%;
-  padding: 12px;
+  padding: 13px;
   background: var(--amber);
   color: #14150f;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   font-family: var(--font-mono);
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   cursor: pointer;
+  transition: background-color 100ms ease, transform 80ms ease;
 }
 
 .result-panel__action:hover {
   background: var(--amber-dim);
+  transform: translateY(-1px);
+}
+
+.result-panel__action:active {
+  transform: scale(0.98);
 }
 
 .result-panel__next {
   text-align: center;
-  color: var(--text-faint);
+  color: var(--text-dim);
   margin: 0;
 }

@@ -1,6 +1,6 @@
 .toast {
   position: absolute;
-  top: 96px;
+  top: 6px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--text);
@@ -9,10 +9,11 @@
   font-weight: 600;
   font-size: 0.85rem;
   padding: 10px 16px;
-  border-radius: 4px;
+  border-radius: 6px;
   z-index: 20;
   animation: toast-in 150ms ease;
   white-space: nowrap;
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes toast-in {

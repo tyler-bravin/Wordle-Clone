@@ -37,7 +37,7 @@ export function Game({ mode, onModeChange }: GameProps) {
   const finished = game && (game.status === "WON" || game.status === "LOST");
 
   return (
-    <div className="game">
+    <div className="terminal">
       <Header mode={mode} onModeChange={onModeChange} statusLine={statusLine} />
 
       <div className="game__board-area">
@@ -63,13 +63,15 @@ export function Game({ mode, onModeChange }: GameProps) {
           onPlayAgain={startNewGame}
         />
       ) : (
-        <Keyboard
-          guesses={game?.guesses ?? []}
-          onLetter={typeLetter}
-          onEnter={submitGuess}
-          onBackspace={backspace}
-          disabled={!game || loading}
-        />
+        <div className="game__keyboard-area">
+          <Keyboard
+            guesses={game?.guesses ?? []}
+            onLetter={typeLetter}
+            onEnter={submitGuess}
+            onBackspace={backspace}
+            disabled={!game || loading}
+          />
+        </div>
       )}
     </div>
   );
