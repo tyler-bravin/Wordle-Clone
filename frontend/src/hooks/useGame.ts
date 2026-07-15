@@ -147,11 +147,21 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
   );
 
   /** Moves the cursor forward without touching the current slot - lets you
-   *  leave a gap for a letter you're unsure of and fill it in later. */
+   *  leave a gap for a letter you're unsure of and fill it in later. Also
+   *  used directly as the right-arrow-key handler, since "move forward
+   *  without typing" is exactly the same action either way. */
   const skip = useCallback(() => {
     if (!game || game.status !== "IN_PROGRESS") return;
     sound.skip();
     setCursor((prev) => Math.min(prev + 1, game.wordLength - 1));
+  }, [game]);
+
+  /** Moves the cursor one slot back without touching any letters - the
+   *  left-arrow-key mirror of skip(). */
+  const stepCursorLeft = useCallback(() => {
+    if (!game || game.status !== "IN_PROGRESS") return;
+    sound.skip();
+    setCursor((prev) => Math.max(prev - 1, 0));
   }, [game]);
 
   /** Jumps the cursor directly to a tile - used for clicking/tapping a
@@ -233,6 +243,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
     shake,
     typeLetter,
     skip,
+    stepCursorLeft,
     moveCursorTo,
     backspace,
     submitGuess,

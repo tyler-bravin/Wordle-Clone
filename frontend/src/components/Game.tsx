@@ -29,6 +29,7 @@ export function Game({ mode, onModeChange }: GameProps) {
     shake,
     typeLetter,
     skip,
+    stepCursorLeft,
     moveCursorTo,
     backspace,
     submitGuess,
@@ -86,6 +87,7 @@ export function Game({ mode, onModeChange }: GameProps) {
             onEnter={submitGuess}
             onBackspace={backspace}
             onSkip={skip}
+            onArrowLeft={stepCursorLeft}
             disabled={!game || loading}
           />
         </div>
