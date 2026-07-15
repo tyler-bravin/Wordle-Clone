@@ -15,7 +15,7 @@ A Wordle clone with a **Java/Spring Boot** backend and a **React/TypeScript** fr
 
 <br>
 
-<img src="./assets/daily-mode.png" alt="Daily mode, finished game with the live countdown to the next word" width="49%" style="vertical-align: top;"> <img src="./assets/endless-mode.png" alt="Endless mode, finished game with word definition and stats" width="49%" style="vertical-align: top;">
+<img src="./assets/daily-mode.png" alt="Daily mode, solved in 3/6 with definition lookup, stats, and the live countdown to the next word" width="49%" style="vertical-align: top;"> <img src="./assets/endless-mode.png" alt="Endless mode, round 19 with a 21-game win streak, definition lookup, and guess distribution" width="49%" style="vertical-align: top;">
 
 ---
 
