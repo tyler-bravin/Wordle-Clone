@@ -1,13 +1,13 @@
 .board {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: clamp(6px, 2vw, 9px);
   padding: 10px 0 22px;
 }
 
 .board__row {
   display: flex;
-  gap: 9px;
+  gap: clamp(4px, 1.8vw, 9px);
 }
 
 .board__row--shake {

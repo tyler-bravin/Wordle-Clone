@@ -53,3 +53,26 @@
   display: flex;
   justify-content: center;
 }
+
+@media (max-width: 360px) {
+  .app {
+    padding: 24px 8px 40px;
+  }
+  .game__board-area {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .game__keyboard-area {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
+
+/* Short viewports (landscape phones) - claw back vertical padding so the
+   board and keyboard aren't pushed below the fold before you even start. */
+@media (max-height: 700px) {
+  .app {
+    padding-top: 16px;
+    padding-bottom: 24px;
+  }
+}

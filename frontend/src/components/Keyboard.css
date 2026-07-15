@@ -16,14 +16,16 @@
   flex: 1;
   min-width: 0;
   max-width: 44px;
-  height: 56px;
+  /* clamp() floor is 44px - the standard minimum accessible tap target -
+     regardless of viewport width, scaling up to 56px on larger screens. */
+  height: clamp(44px, 12vw, 56px);
   border: none;
   border-radius: 6px;
   background: var(--surface-raised);
   color: var(--text);
   font-family: var(--font-mono);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: clamp(0.82rem, 3vw, 1rem);
   text-transform: uppercase;
   cursor: pointer;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
@@ -51,7 +53,7 @@
 
 .key--wide {
   max-width: 66px;
-  font-size: 0.72rem;
+  font-size: clamp(0.62rem, 2.2vw, 0.72rem);
   letter-spacing: 0.03em;
 }
 
@@ -69,11 +71,4 @@
   background: var(--border);
   color: var(--text-dim);
   opacity: 0.75;
-}
-
-@media (max-width: 420px) {
-  .key {
-    height: 48px;
-    font-size: 0.9rem;
-  }
 }

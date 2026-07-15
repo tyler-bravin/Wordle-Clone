@@ -30,6 +30,12 @@
   --font-display: "Archivo", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
 
+  /* Fluid tile size: scales continuously with viewport width instead of
+     jumping at a single breakpoint, so it can't overflow on very narrow
+     screens or look tiny on very wide ones. Bounds are chosen so the full
+     5-tile row plus gaps fits down to ~280px viewports (see Board.css). */
+  --tile-size: clamp(36px, 11.5vw, 62px);
+
   color-scheme: dark;
 }
 

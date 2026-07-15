@@ -119,3 +119,10 @@
   color: var(--text-dim);
   margin: 16px 0 0;
 }
+
+@media (max-width: 360px) {
+  .terminal-header__body {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}

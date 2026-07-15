@@ -1,6 +1,6 @@
 .tile {
-  width: 62px;
-  height: 62px;
+  width: var(--tile-size);
+  height: var(--tile-size);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,7 +13,9 @@
 .tile__letter {
   font-family: var(--font-mono);
   font-weight: 600;
-  font-size: 1.75rem;
+  /* Scales with the tile itself so text never overflows a shrunk tile
+     on small screens, or looks undersized on large ones. */
+  font-size: calc(var(--tile-size) * 0.42);
   color: var(--text);
   text-transform: uppercase;
 }
@@ -66,15 +68,5 @@
   }
   100% {
     transform: rotateX(0deg);
-  }
-}
-
-@media (max-width: 420px) {
-  .tile {
-    width: 48px;
-    height: 48px;
-  }
-  .tile__letter {
-    font-size: 1.35rem;
   }
 }
