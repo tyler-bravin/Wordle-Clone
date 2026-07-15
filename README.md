@@ -25,6 +25,7 @@ A Wordle clone with a **Java/Spring Boot** backend and a **React/TypeScript** fr
 * **Word Definition Lookup**: Once a game ends, the result panel fetches a definition for the answer from a free external dictionary API, rendered as another terminal-log-style block.
 * **Persistent Stats**: Win rate, streak, and guess distribution tracked per mode in `localStorage`, styled as a `cat stats.log` readout.
 * **Terminal-Styled UI**: Titlebar, blinking prompt, and `[daily]` / `[endless]` mode tabs — the same shell-session framing device used across my other projects.
+* **Skip-Letter Input**: Press Space to leave a gap for a letter you're unsure of and keep typing, then click any tile in the row to jump back and fill it in - à la [lessgames.com's Wordless](https://lessgames.com/wordless).
 * **Fully Fluid Layout**: Tile and key sizing scale continuously with viewport width (`clamp()`), rather than jumping at a single breakpoint, so it holds up from small phones to ultrawide monitors.
 * **Dockerized & Coolify-Ready**: Multi-stage Dockerfiles for both services plus a `docker-compose.yml` that doubles as the Coolify deployment target — see the Deployment section below.
 

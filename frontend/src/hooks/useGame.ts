@@ -11,9 +11,19 @@ interface EndlessBagInfo {
   totalWordsInBag: number;
 }
 
+function makeEmptyLetters(wordLength: number): string[] {
+  return Array.from({ length: wordLength }, () => "");
+}
+
 /**
  * Drives a single mode's game session: bootstrapping/resuming on mount,
  * tracking the in-progress guess, and submitting guesses to the backend.
+ *
+ * The in-progress guess is a fixed-length array with a cursor, not a plain
+ * string, so a letter can be typed into any position independently - see
+ * `skip`/`moveCursorTo` below. This is what lets you leave a gap for a
+ * letter you're unsure of and come back to it, rather than always filling
+ * strictly left to right.
  *
  * Daily resumes by gameId alone (there's only ever one "current" daily game).
  * Endless additionally persists a playerId so "Play again" and page reloads
@@ -22,7 +32,8 @@ interface EndlessBagInfo {
 export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
   const [game, setGame] = useState<GameState | null>(null);
   const [endlessBag, setEndlessBag] = useState<EndlessBagInfo | null>(null);
-  const [currentGuess, setCurrentGuess] = useState("");
+  const [letters, setLetters] = useState<string[]>([]);
+  const [cursor, setCursor] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
@@ -42,12 +53,18 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
     }, 1600);
   }, []);
 
+  const resetInput = useCallback((wordLength: number) => {
+    setLetters(makeEmptyLetters(wordLength));
+    setCursor(0);
+  }, []);
+
   const startFreshDaily = useCallback(async () => {
     const fresh = await gameApi.startDaily();
     localStorage.setItem(DAILY_GAME_ID_KEY, fresh.gameId);
     setGame(fresh);
     setEndlessBag(null);
-  }, []);
+    resetInput(fresh.wordLength);
+  }, [resetInput]);
 
   const startFreshEndless = useCallback(async () => {
     const savedPlayerId = localStorage.getItem(ENDLESS_PLAYER_ID_KEY);
@@ -59,11 +76,11 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
       wordsRemainingInBag: session.wordsRemainingInBag,
       totalWordsInBag: session.totalWordsInBag,
     });
-  }, []);
+    resetInput(session.game.wordLength);
+  }, [resetInput]);
 
   const bootstrap = useCallback(async () => {
     setLoading(true);
-    setCurrentGuess("");
     try {
       const savedGameId = localStorage.getItem(gameIdKey);
       if (savedGameId) {
@@ -72,6 +89,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
         // Bag progress isn't returned by the plain get-state endpoint, so it's
         // only shown once a fresh /endless/start response provides it.
         setEndlessBag(null);
+        resetInput(resumed.wordLength);
         if (resumed.status !== "IN_PROGRESS") {
           onFinishedRef.current(resumed);
         }
@@ -87,7 +105,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
     } finally {
       setLoading(false);
     }
-  }, [gameIdKey, mode, startFreshDaily, startFreshEndless]);
+  }, [gameIdKey, mode, startFreshDaily, startFreshEndless, resetInput]);
 
   useEffect(() => {
     bootstrap();
@@ -101,7 +119,6 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
       } else {
         await startFreshEndless();
       }
-      setCurrentGuess("");
     } finally {
       setLoading(false);
     }
@@ -110,27 +127,60 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
   const typeLetter = useCallback(
     (letter: string) => {
       if (!game || game.status !== "IN_PROGRESS") return;
-      setCurrentGuess((prev) =>
-        prev.length < game.wordLength ? prev + letter.toLowerCase() : prev
-      );
+      setLetters((prev) => {
+        const next = [...prev];
+        next[cursor] = letter.toLowerCase();
+        return next;
+      });
+      setCursor((prev) => Math.min(prev + 1, game.wordLength - 1));
+    },
+    [game, cursor]
+  );
+
+  /** Moves the cursor forward without touching the current slot - lets you
+   *  leave a gap for a letter you're unsure of and fill it in later. */
+  const skip = useCallback(() => {
+    if (!game || game.status !== "IN_PROGRESS") return;
+    setCursor((prev) => Math.min(prev + 1, game.wordLength - 1));
+  }, [game]);
+
+  /** Jumps the cursor directly to a tile - used for clicking/tapping a
+   *  specific letter to edit it, without backspacing through everything after it. */
+  const moveCursorTo = useCallback(
+    (index: number) => {
+      if (!game || game.status !== "IN_PROGRESS") return;
+      setCursor(Math.max(0, Math.min(index, game.wordLength - 1)));
     },
     [game]
   );
 
   const backspace = useCallback(() => {
-    setCurrentGuess((prev) => prev.slice(0, -1));
-  }, []);
+    if (!game || game.status !== "IN_PROGRESS") return;
+    // If the current slot has a letter, clear just that one. Otherwise (it's
+    // already blank - e.g. you skipped past it) step back and clear the
+    // previous slot instead, matching what backspace does in a normal text input.
+    const hasLetterAtCursor = letters[cursor] !== "";
+    const targetIndex = hasLetterAtCursor ? cursor : Math.max(cursor - 1, 0);
+
+    setLetters((prev) => {
+      const next = [...prev];
+      next[targetIndex] = "";
+      return next;
+    });
+    setCursor(targetIndex);
+  }, [game, cursor, letters]);
 
   const submitGuess = useCallback(async () => {
     if (!game || game.status !== "IN_PROGRESS") return;
-    if (currentGuess.length !== game.wordLength) {
+    if (letters.length !== game.wordLength || letters.some((l) => l === "")) {
       showError("Not enough letters");
       return;
     }
+    const guess = letters.join("");
     try {
-      const updated = await gameApi.submitGuess(game.gameId, currentGuess);
+      const updated = await gameApi.submitGuess(game.gameId, guess);
       setGame(updated);
-      setCurrentGuess("");
+      resetInput(updated.wordLength);
       if (updated.status !== "IN_PROGRESS") {
         onFinishedRef.current(updated);
       }
@@ -141,16 +191,19 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
         showError("Something went wrong - try again");
       }
     }
-  }, [game, currentGuess, showError]);
+  }, [game, letters, showError, resetInput]);
 
   return {
     game,
     endlessBag,
-    currentGuess,
+    letters,
+    cursor,
     loading,
     error,
     shake,
     typeLetter,
+    skip,
+    moveCursorTo,
     backspace,
     submitGuess,
     startNewGame,

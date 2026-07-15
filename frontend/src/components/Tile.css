@@ -21,7 +21,15 @@
   text-transform: uppercase;
 }
 
-.tile--typing {
+.tile--filled {
+  border-color: var(--border-strong);
+}
+
+.tile--clickable {
+  cursor: pointer;
+}
+
+.tile--cursor {
   border-color: var(--amber);
   transform: scale(1.05);
   box-shadow: 0 0 0 3px rgba(232, 163, 61, 0.15);

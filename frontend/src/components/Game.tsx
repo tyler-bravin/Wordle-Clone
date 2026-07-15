@@ -19,12 +19,25 @@ interface GameProps {
 
 export function Game({ mode, onModeChange }: GameProps) {
   const { stats, recordResult } = useStats(STATS_KEYS[mode]);
-  const { game, endlessBag, currentGuess, loading, error, shake, typeLetter, backspace, submitGuess, startNewGame } =
-    useGame(mode, (finished) => {
-      if (finished.status === "WON" || finished.status === "LOST") {
-        recordResult(finished.status, finished.guesses.length, finished.gameId);
-      }
-    });
+  const {
+    game,
+    endlessBag,
+    letters,
+    cursor,
+    loading,
+    error,
+    shake,
+    typeLetter,
+    skip,
+    moveCursorTo,
+    backspace,
+    submitGuess,
+    startNewGame,
+  } = useGame(mode, (finished) => {
+    if (finished.status === "WON" || finished.status === "LOST") {
+      recordResult(finished.status, finished.guesses.length, finished.gameId);
+    }
+  });
 
   const statusLine = loading || !game
     ? "loading..."
@@ -47,7 +60,9 @@ export function Game({ mode, onModeChange }: GameProps) {
             wordLength={game.wordLength}
             maxGuesses={game.maxGuesses}
             guesses={game.guesses}
-            currentGuess={currentGuess}
+            letters={letters}
+            cursor={cursor}
+            onTileClick={moveCursorTo}
             shake={shake}
           />
         )}
@@ -70,6 +85,7 @@ export function Game({ mode, onModeChange }: GameProps) {
             onLetter={typeLetter}
             onEnter={submitGuess}
             onBackspace={backspace}
+            onSkip={skip}
             disabled={!game || loading}
           />
         </div>

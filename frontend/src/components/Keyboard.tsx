@@ -8,6 +8,7 @@ interface KeyboardProps {
   onLetter: (letter: string) => void;
   onEnter: () => void;
   onBackspace: () => void;
+  onSkip: () => void;
   disabled: boolean;
 }
 
@@ -17,7 +18,7 @@ const ROWS = [
   ["enter", "z", "x", "c", "v", "b", "n", "m", "backspace"],
 ];
 
-export function Keyboard({ guesses, onLetter, onEnter, onBackspace, disabled }: KeyboardProps) {
+export function Keyboard({ guesses, onLetter, onEnter, onBackspace, onSkip, disabled }: KeyboardProps) {
   const letterStates = computeLetterStates(guesses);
 
   useEffect(() => {
@@ -27,13 +28,18 @@ export function Keyboard({ guesses, onLetter, onEnter, onBackspace, disabled }: 
         onEnter();
       } else if (e.key === "Backspace") {
         onBackspace();
+      } else if (e.key === " ") {
+        // Space scrolls the page by default when nothing else has focus -
+        // block that, since here it means "skip this letter", not "scroll".
+        e.preventDefault();
+        onSkip();
       } else if (/^[a-zA-Z]$/.test(e.key)) {
         onLetter(e.key);
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [disabled, onEnter, onBackspace, onLetter]);
+  }, [disabled, onEnter, onBackspace, onSkip, onLetter]);
 
   return (
     <div className="keyboard">
