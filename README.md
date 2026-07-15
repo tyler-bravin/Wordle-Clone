@@ -1,5 +1,6 @@
 # Wordle Clone
 
+[![CI](https://img.shields.io/github/actions/workflow/status/tyler-bravin/Wordle-Clone/ci.yml?style=for-the-badge&label=CI)](https://github.com/tyler-bravin/Wordle-Clone/actions/workflows/ci.yml)
 ![Java](https://img.shields.io/badge/Java_21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
@@ -92,6 +93,8 @@ Follow these steps to get a local copy of the project up and running.
     cd frontend && npm run build && npm run lint
     ```
     Backend tests cover guess-evaluation edge cases and the Endless shuffle bag's no-repeat guarantee. `tsc -b` type-checks as part of the frontend build; `oxlint` covers linting.
+
+    This also runs automatically on every push via GitHub Actions (`.github/workflows/ci.yml`) - see the CI badge at the top of this README.
 
 ---
 
