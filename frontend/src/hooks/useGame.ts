@@ -150,6 +150,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
    *  leave a gap for a letter you're unsure of and fill it in later. */
   const skip = useCallback(() => {
     if (!game || game.status !== "IN_PROGRESS") return;
+    sound.skip();
     setCursor((prev) => Math.min(prev + 1, game.wordLength - 1));
   }, [game]);
 
@@ -158,6 +159,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
   const moveCursorTo = useCallback(
     (index: number) => {
       if (!game || game.status !== "IN_PROGRESS") return;
+      sound.skip();
       setCursor(Math.max(0, Math.min(index, game.wordLength - 1)));
     },
     [game]

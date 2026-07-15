@@ -86,6 +86,13 @@ class SoundEngine {
     this.tone(620, 45, { type: "sine", volume: 0.035 });
   }
 
+  /** A soft, neutral tick for skipping a letter without filling it in - a
+   *  different timbre (triangle, not sine) from keyPress/backspace so it
+   *  doesn't read as "typed" or "deleted", just "moved past". */
+  skip(): void {
+    this.tone(460, 40, { type: "triangle", volume: 0.03 });
+  }
+
   /** A softer, lower tick for deleting a letter. */
   backspace(): void {
     this.tone(300, 45, { type: "sine", volume: 0.03 });
