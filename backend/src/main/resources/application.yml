@@ -1,0 +1,24 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: wordle
+
+wordle:
+  # Comma-separated list of origins allowed to call the API (frontend URL(s))
+  allowed-origins: ${WORDLE_ALLOWED_ORIGINS:http://localhost:5173}
+  max-guesses: 6
+  word-length: 5
+  # Fixed epoch date used to derive the daily word index. Do not change once live,
+  # or previously-played "days" will shuffle to different words.
+  epoch-date: 2024-01-01
+  # Fixed shuffle seed so the daily word order is stable across restarts but not
+  # simply alphabetical (the source answer list is alphabetically sorted).
+  shuffle-seed: 20240101
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
