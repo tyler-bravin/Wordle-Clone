@@ -40,6 +40,12 @@ Both modes share the same guess-scoring logic (`GuessEvaluator`), which
 handles duplicate letters the way real Wordle does - see
 `GuessEvaluatorTest` for the specific edge cases.
 
+Once a game ends, the frontend fetches a definition for the answer word from
+a free external dictionary API (`DictionaryService`), shown as a small
+"what did that word mean" panel. This is the only place the backend calls a
+third party, and it's deliberately kept off the actual gameplay path - see
+that class's Javadoc for why.
+
 ## Project layout
 
 ```
@@ -133,6 +139,11 @@ cut deliberately:
 - **Single backend instance.** Because sessions live in a `ConcurrentHashMap`
   on one instance, this wouldn't horizontally scale without moving state to
   something shared like Redis.
+- **The definition lookup depends on a free third-party API** (dictionaryapi.dev)
+  with no SLA. It's deliberately isolated from actual gameplay so this doesn't
+  matter for playing the game - see `DictionaryService`'s Javadoc - but don't
+  expect it to be 100% reliable at scale, and its in-memory cache would want
+  an eviction policy under real traffic.
 
 ## Testing
 
