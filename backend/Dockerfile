@@ -14,7 +14,12 @@ RUN mvn -B package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-RUN addgroup -S spring && adduser -S spring -G spring
+# Alpine-based images deliberately ship minimal - wget isn't guaranteed to be
+# present, and the HEALTHCHECK below depends on it. Installing it explicitly
+# here means the healthcheck can't silently fail just because a base image
+# update drops a tool it was never guaranteed to include in the first place.
+RUN apk add --no-cache wget && \
+    addgroup -S spring && adduser -S spring -G spring
 COPY --from=build /app/target/wordle.jar app.jar
 RUN chown spring:spring app.jar
 USER spring
