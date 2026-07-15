@@ -8,7 +8,7 @@ export interface Stats {
   maxStreak: number;
   /** Index 0..5 = wins in 1..6 guesses. */
   guessDistribution: number[];
-  lastRecordedDayNumber: number | null;
+  lastRecordedGameId: string | null;
 }
 
 const EMPTY_STATS: Stats = {
@@ -17,7 +17,7 @@ const EMPTY_STATS: Stats = {
   currentStreak: 0,
   maxStreak: 0,
   guessDistribution: [0, 0, 0, 0, 0, 0],
-  lastRecordedDayNumber: null,
+  lastRecordedGameId: null,
 };
 
 function loadStats(storageKey: string): Stats {
@@ -34,9 +34,14 @@ function loadStats(storageKey: string): Stats {
  * Tracks win/loss stats in localStorage under the given key, so Daily and
  * Endless mode can keep independent stats by using two different keys.
  *
- * For Daily, pass the backend's calendar-day `roundNumber` to `recordResult`
- * so a page reload on the same day doesn't double-count. For Endless, every
- * round has a unique bag position, so every finished game is recorded.
+ * Deduplicates by `gameId` rather than round number. Round numbers (calendar
+ * day for Daily, bag position for Endless) aren't reliable dedup keys on
+ * their own: game state is in-memory only (see README's "Known
+ * Simplifications"), so a backend restart mid-session can hand out a *new*
+ * gameId that happens to reuse a round number a previous, differently-scored
+ * game already used - e.g. replaying today's Daily word after the original
+ * session was lost. Keying on gameId instead means every distinct finished
+ * game gets recorded exactly once, no matter what round number it landed on.
  */
 export function useStats(storageKey: string) {
   const [stats, setStats] = useState<Stats>(() => loadStats(storageKey));
@@ -50,10 +55,10 @@ export function useStats(storageKey: string) {
   }, [storageKey, stats]);
 
   const recordResult = useCallback(
-    (status: Extract<GameStatus, "WON" | "LOST">, guessCount: number, roundNumber: number) => {
+    (status: Extract<GameStatus, "WON" | "LOST">, guessCount: number, gameId: string) => {
       setStats((prev) => {
-        if (prev.lastRecordedDayNumber === roundNumber) {
-          return prev; // already recorded this round
+        if (prev.lastRecordedGameId === gameId) {
+          return prev; // already recorded this exact game
         }
 
         const won = status === "WON";
@@ -68,7 +73,7 @@ export function useStats(storageKey: string) {
           currentStreak: won ? prev.currentStreak + 1 : 0,
           maxStreak: won ? Math.max(prev.maxStreak, prev.currentStreak + 1) : prev.maxStreak,
           guessDistribution: distribution,
-          lastRecordedDayNumber: roundNumber,
+          lastRecordedGameId: gameId,
         };
       });
     },

@@ -22,7 +22,7 @@ export function Game({ mode, onModeChange }: GameProps) {
   const { game, endlessBag, currentGuess, loading, error, shake, typeLetter, backspace, submitGuess, startNewGame } =
     useGame(mode, (finished) => {
       if (finished.status === "WON" || finished.status === "LOST") {
-        recordResult(finished.status, finished.guesses.length, finished.roundNumber);
+        recordResult(finished.status, finished.guesses.length, finished.gameId);
       }
     });
 
