@@ -1,0 +1,73 @@
+.tile {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  transition: border-color 120ms ease, transform 100ms ease;
+}
+
+.tile__letter {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 1.6rem;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+.tile--typing {
+  border-color: var(--border-strong);
+  transform: scale(1.04);
+}
+
+.tile--correct {
+  background: var(--correct);
+  border-color: var(--correct);
+}
+
+.tile--present {
+  background: var(--present);
+  border-color: var(--present);
+}
+
+.tile--absent {
+  background: var(--surface-raised);
+  border-color: var(--border-strong);
+}
+
+.tile--correct .tile__letter,
+.tile--present .tile__letter {
+  color: #14150f;
+}
+
+.tile--reveal {
+  animation: flip 480ms ease forwards;
+}
+
+@keyframes flip {
+  0% {
+    transform: rotateX(0deg);
+  }
+  45% {
+    transform: rotateX(90deg);
+  }
+  55% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+@media (max-width: 420px) {
+  .tile {
+    width: 46px;
+    height: 46px;
+  }
+  .tile__letter {
+    font-size: 1.3rem;
+  }
+}
