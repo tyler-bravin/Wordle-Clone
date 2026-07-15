@@ -35,6 +35,10 @@
   letter-spacing: 0.05em;
 }
 
+.result-panel__definition {
+  margin-top: 14px;
+}
+
 .result-panel__divider {
   height: 1px;
   background: var(--border);

@@ -28,6 +28,19 @@ export interface EndlessSessionState {
   totalWordsInBag: number;
 }
 
+export interface WordDefinitionMeaning {
+  partOfSpeech: string;
+  definition: string;
+  example: string | null;
+}
+
+export interface WordDefinition {
+  word: string;
+  found: boolean;
+  phonetic: string | null;
+  meanings: WordDefinitionMeaning[];
+}
+
 export interface ApiError {
   timestamp: string;
   status: number;

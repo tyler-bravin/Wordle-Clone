@@ -1,5 +1,6 @@
 import type { GameMode, GameStatus } from "../types/game";
 import type { Stats } from "../hooks/useStats";
+import { Definition } from "./Definition";
 import "./ResultPanel.css";
 
 interface ResultPanelProps {
@@ -28,6 +29,10 @@ export function ResultPanel({ mode, status, answer, guessCount, stats, onPlayAga
       <div className="result-panel__line">
         <span className="result-panel__label">answer:</span>{" "}
         <span className="result-panel__answer">{answer}</span>
+      </div>
+
+      <div className="result-panel__definition">
+        <Definition word={answer} />
       </div>
 
       <div className="result-panel__divider" />

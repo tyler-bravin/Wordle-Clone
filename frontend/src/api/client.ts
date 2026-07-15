@@ -1,4 +1,4 @@
-import type { ApiError, EndlessSessionState, GameState } from "../types/game";
+import type { ApiError, EndlessSessionState, GameState, WordDefinition } from "../types/game";
 
 // In production this is baked in at build time (see .env.production / Coolify
 // build args). In dev it falls back to the local Spring Boot server.
@@ -51,4 +51,8 @@ export const gameApi = {
       method: "POST",
       body: JSON.stringify({ guess }),
     }),
+};
+
+export const dictionaryApi = {
+  getDefinition: (word: string) => request<WordDefinition>(`/api/dictionary/${word}`),
 };
