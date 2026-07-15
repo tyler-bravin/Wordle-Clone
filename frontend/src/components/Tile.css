@@ -35,6 +35,38 @@
   box-shadow: 0 0 0 3px rgba(232, 163, 61, 0.15);
 }
 
+/* Static end states - applied once a reveal animation finishes (see Tile.tsx's
+   onAnimationEnd). Plain properties, no custom-property/keyframe dependency,
+   so there's nothing for animation-fill-mode's cross-browser quirks to affect. */
+.tile--correct {
+  background: var(--correct);
+  border-color: var(--correct);
+  box-shadow: 0 2px 8px -2px rgba(76, 154, 91, 0.5);
+}
+
+.tile--correct .tile__letter {
+  color: #14150f;
+}
+
+.tile--present {
+  background: var(--present);
+  border-color: var(--present);
+  box-shadow: 0 2px 8px -2px rgba(201, 154, 63, 0.5);
+}
+
+.tile--present .tile__letter {
+  color: #14150f;
+}
+
+.tile--absent {
+  background: var(--surface-raised);
+  border-color: var(--surface-raised);
+}
+
+.tile--absent .tile__letter {
+  color: var(--text-dim);
+}
+
 /*
  * Each revealed state gets its own flip animation rather than a shared
  * "flip" animation plus a separately-applied color class. That separation
