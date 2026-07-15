@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiRequestError, gameApi } from "../api/client";
+import { sound } from "../lib/sound";
 import type { GameMode, GameState } from "../types/game";
 
 const DAILY_GAME_ID_KEY = "wordle-daily-game-id-v1";
@@ -46,6 +47,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
   const showError = useCallback((message: string) => {
     setError(message);
     setShake(true);
+    sound.error();
     if (errorTimeout.current) clearTimeout(errorTimeout.current);
     errorTimeout.current = setTimeout(() => {
       setError(null);
@@ -127,6 +129,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
   const typeLetter = useCallback(
     (letter: string) => {
       if (!game || game.status !== "IN_PROGRESS") return;
+      sound.keyPress();
       setLetters((prev) => {
         const next = [...prev];
         next[cursor] = letter.toLowerCase();
@@ -162,6 +165,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
     const hasLetterAtCursor = letters[cursor] !== "";
     const targetIndex = hasLetterAtCursor ? cursor : Math.max(cursor - 1, 0);
 
+    sound.backspace();
     setLetters((prev) => {
       const next = [...prev];
       next[targetIndex] = "";
@@ -181,7 +185,25 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
       const updated = await gameApi.submitGuess(game.gameId, guess);
       setGame(updated);
       resetInput(updated.wordLength);
-      if (updated.status !== "IN_PROGRESS") {
+
+      // Each tile's color only actually swaps at the midpoint of its flip
+      // (see Tile.css) - 240ms into its own 480ms animation, offset by its
+      // column's stagger delay (180ms per column, same stagger Tile.tsx uses
+      // for animationDelay). Timing the tone to that same instant, rather
+      // than to when the guess is submitted, is what makes it read as "this
+      // tile just revealed" instead of a burst of sound before anything's
+      // visibly happened.
+      const latestGuess = updated.guesses[updated.guesses.length - 1];
+      latestGuess.results.forEach((result, i) => {
+        sound.tileReveal(result, i * 180 + 240);
+      });
+
+      if (updated.status === "WON" || updated.status === "LOST") {
+        const cascadeEndMs = (latestGuess.results.length - 1) * 180 + 480 + 150;
+        setTimeout(() => {
+          if (updated.status === "WON") sound.win();
+          else sound.lose();
+        }, cascadeEndMs);
         onFinishedRef.current(updated);
       }
     } catch (err) {

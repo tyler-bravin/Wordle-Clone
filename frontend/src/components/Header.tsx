@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { GameMode } from "../types/game";
+import { sound } from "../lib/sound";
 import "./Header.css";
 
 interface HeaderProps {
@@ -8,6 +10,8 @@ interface HeaderProps {
 }
 
 export function Header({ mode, onModeChange, statusLine }: HeaderProps) {
+  const [muted, setMuted] = useState(() => sound.isMuted());
+
   return (
     <div className="terminal-header">
       <div className="terminal-header__titlebar">
@@ -17,6 +21,14 @@ export function Header({ mode, onModeChange, statusLine }: HeaderProps) {
           <span className="dot dot--amber" />
         </div>
         <span className="terminal-header__title">wordle — zsh — 80x24</span>
+        <button
+          className="terminal-header__sound-toggle"
+          onClick={() => setMuted(sound.toggleMuted())}
+          aria-label={muted ? "Unmute sound effects" : "Mute sound effects"}
+          aria-pressed={muted}
+        >
+          [{muted ? "muted" : "sound"}]
+        </button>
       </div>
 
       <div className="terminal-header__body">

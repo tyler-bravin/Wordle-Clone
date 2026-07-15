@@ -33,7 +33,25 @@
   font-size: 0.72rem;
   color: var(--text-dim);
   margin: 0 auto;
-  transform: translateX(-15px);
+}
+
+.terminal-header__sound-toggle {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 2px 0;
+  white-space: nowrap;
+}
+
+.terminal-header__sound-toggle:hover {
+  color: var(--text-dim);
+}
+
+.terminal-header__sound-toggle[aria-pressed="true"] {
+  color: var(--danger);
 }
 
 .terminal-header__body {
