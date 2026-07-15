@@ -1,0 +1,139 @@
+.result-panel {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.result-panel__line {
+  margin: 0 0 4px;
+}
+
+.result-panel__prompt {
+  color: var(--text-dim);
+}
+
+.result-panel__won {
+  color: var(--correct);
+  font-weight: 600;
+}
+
+.result-panel__lost {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.result-panel__label {
+  color: var(--text-dim);
+}
+
+.result-panel__answer {
+  color: var(--amber);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.result-panel__divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+}
+
+.result-panel__heading {
+  color: var(--text-dim);
+  margin: 0 0 12px;
+}
+
+.result-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.result-panel__stat {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.result-panel__stat-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+.result-panel__distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.dist-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dist-row__label {
+  color: var(--text-dim);
+  width: 10px;
+}
+
+.dist-row__track {
+  flex: 1;
+}
+
+.dist-row__bar {
+  background: var(--border-strong);
+  min-width: 22px;
+  padding: 2px 6px;
+  text-align: right;
+  border-radius: 2px;
+}
+
+.dist-row__bar--current {
+  background: var(--correct);
+}
+
+.dist-row__count {
+  color: var(--text);
+  font-size: 0.75rem;
+}
+
+.dist-row__bar--current .dist-row__count {
+  color: #14150f;
+}
+
+.result-panel__action {
+  width: 100%;
+  padding: 12px;
+  background: var(--amber);
+  color: #14150f;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.result-panel__action:hover {
+  background: var(--amber-dim);
+}
+
+.result-panel__next {
+  text-align: center;
+  color: var(--text-faint);
+  margin: 0;
+}
