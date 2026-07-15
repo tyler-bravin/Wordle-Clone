@@ -12,10 +12,10 @@ wordle:
   word-length: 5
   # Fixed epoch date used to derive the daily word index. Do not change once live,
   # or previously-played "days" will shuffle to different words.
-  epoch-date: 2024-01-01
+  epoch-date: ${WORDLE_EPOCH_DATE:2024-01-01}
   # Fixed shuffle seed so the daily word order is stable across restarts but not
   # simply alphabetical (the source answer list is alphabetically sorted).
-  shuffle-seed: 20240101
+  shuffle-seed: ${WORDLE_SHUFFLE_SEED:20240101}
 
 management:
   endpoints:
