@@ -14,7 +14,7 @@ A Wordle clone with a **Java/Spring Boot** backend and a **React/TypeScript** fr
 
 <br>
 
-<img src="./assets/daily-mode.png" alt="Daily mode, finished game with stats" width="49%"> <img src="./assets/endless-mode.png" alt="Endless mode, an in-progress guess" width="49%">
+<img src="./assets/daily-mode.png" alt="Daily mode, finished game with the live countdown to the next word" width="49%"> <img src="./assets/endless-mode.png" alt="Endless mode, finished game with word definition and stats" width="49%">
 
 ---
 
