@@ -1,0 +1,25 @@
+.app {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 24px 12px 40px;
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.game__board-area {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  padding-top: 8px;
+}
