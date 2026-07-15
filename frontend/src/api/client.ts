@@ -1,7 +1,8 @@
 import type { ApiError, EndlessSessionState, GameState, WordDefinition } from "../types/game";
 
-// In production this is baked in at build time (see .env.production / Coolify
-// build args). In dev it falls back to the local Spring Boot server.
+// Falls back to the local backend for dev. In production this is
+// overridden by a real build-time environment variable, which always
+// takes priority over this default - see README.md for how that's set.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 
 export class ApiRequestError extends Error {

@@ -17,6 +17,8 @@ npm-debug.log*
 .vscode/
 .DS_Store
 
-# Env
+# Env - .env.development is intentionally NOT ignored (see frontend/.env.example);
+# it's a committed, non-secret local default, not a place secrets live.
+# Anything ending in .local is a personal override and never gets committed.
 .env
-.env.local
+.env*.local

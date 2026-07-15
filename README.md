@@ -80,7 +80,11 @@ npm run dev
 ```
 
 Runs on `http://localhost:5173` and talks to the backend via
-`VITE_API_BASE_URL` (defaults to `http://localhost:8080` in `.env.development`).
+`VITE_API_BASE_URL` (defaults to `http://localhost:8080` in `.env.development`,
+which is committed since it's not a secret - see `frontend/.env.example` for
+what other env vars exist and why there's no `.env.production` committed
+alongside it: that value is set as a real build-time environment variable in
+Coolify instead, which always overrides anything in an `.env` file).
 
 ### Both together, via Docker
 
