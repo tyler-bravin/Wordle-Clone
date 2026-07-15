@@ -19,7 +19,7 @@ A Wordle clone with a **Java/Spring Boot** backend and a **React/TypeScript** fr
 ---
 
 ### ✨ Key Features
-* **Daily Mode**: One shared word per calendar day, the same for every player — derived server-side from a fixed-seed shuffle of the answer list, so it's stable across restarts but not just alphabetical.
+* **Daily Mode**: One shared word per calendar day, the same for every player — derived server-side from a fixed-seed shuffle of the answer list, so it's stable across restarts but not just alphabetical. Once finished, a live countdown to the next UTC-midnight reset replaces the usual "~24h" guess.
 * **Endless Mode**: Unlimited rounds via a per-player shuffle bag — every answer word gets dealt exactly once before the bag reshuffles, so nothing repeats until you've genuinely seen the whole pool.
 * **Server-Authoritative Guessing**: The answer is never sent to the client until a game ends — every guess is scored on the backend, so it can't be read out of the network tab mid-game.
 * **Word Definition Lookup**: Once a game ends, the result panel fetches a definition for the answer from a free external dictionary API, rendered as another terminal-log-style block.
