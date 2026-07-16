@@ -1,0 +1,42 @@
+.connection-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  text-align: center;
+}
+
+.connection-error__message {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.connection-error__prompt {
+  color: var(--text-dim);
+  margin-right: 6px;
+}
+
+.connection-error__action {
+  padding: 10px 20px;
+  background: var(--amber);
+  color: #14150f;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 100ms ease, transform 80ms ease;
+}
+
+.connection-error__action:hover {
+  background: var(--amber-dim);
+  transform: translateY(-1px);
+}
+
+.connection-error__action:active {
+  transform: scale(0.98);
+}

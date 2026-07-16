@@ -16,6 +16,27 @@ function makeEmptyLetters(wordLength: number): string[] {
   return Array.from({ length: wordLength }, () => "");
 }
 
+// Retried with backoff mainly to ride out a backend redeploy: the frontend
+// container can start serving before the backend one is actually ready to
+// accept connections, so the very first request after a deploy can fail for
+// reasons that resolve themselves within a few seconds.
+const BOOTSTRAP_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000];
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Retries `attempt` after each delay in `delaysMs`, throwing the last error once none remain. */
+async function withRetries<T>(attempt: () => Promise<T>, delaysMs: number[]): Promise<T> {
+  try {
+    return await attempt();
+  } catch (err) {
+    if (delaysMs.length === 0) throw err;
+    await delay(delaysMs[0]);
+    return withRetries(attempt, delaysMs.slice(1));
+  }
+}
+
 // Must match Tile.css's transition duration and Tile.tsx's stagger multiplier -
 // kept here as named constants so the reveal-tone timing below has one obvious
 // place to update if the flip's pacing ever changes.
@@ -43,6 +64,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
   const [cursor, setCursor] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bootstrapError, setBootstrapError] = useState(false);
   const [shake, setShake] = useState(false);
   const errorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onFinishedRef = useRef(onFinished);
@@ -87,11 +109,19 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
     resetInput(session.game.wordLength);
   }, [resetInput]);
 
-  const bootstrap = useCallback(async () => {
-    setLoading(true);
-    try {
-      const savedGameId = localStorage.getItem(gameIdKey);
-      if (savedGameId) {
+  const startFresh = useCallback(async () => {
+    if (mode === "DAILY") {
+      await startFreshDaily();
+    } else {
+      await startFreshEndless();
+    }
+  }, [mode, startFreshDaily, startFreshEndless]);
+
+  /** Resumes the saved game if there is one and it still exists server-side, otherwise starts fresh. */
+  const resumeOrStart = useCallback(async () => {
+    const savedGameId = localStorage.getItem(gameIdKey);
+    if (savedGameId) {
+      try {
         const resumed = await gameApi.getGame(savedGameId);
         setGame(resumed);
         // Bag progress isn't returned by the plain get-state endpoint, so it's
@@ -102,18 +132,36 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
           onFinishedRef.current(resumed);
         }
         return;
+      } catch (err) {
+        // A 404 genuinely means this game is gone (e.g. yesterday's Daily
+        // gameId) - starting fresh is correct. Anything else (network error,
+        // 5xx) doesn't tell us that, so it's rethrown for the retry loop
+        // below rather than treated as "start a new game" - retrying the
+        // actual resume is what should happen if this was just the backend
+        // not being ready yet.
+        if (!(err instanceof ApiRequestError) || err.status !== 404) {
+          throw err;
+        }
       }
-      throw new ApiRequestError("no saved game", 404);
+    }
+    await startFresh();
+  }, [gameIdKey, startFresh, resetInput]);
+
+  const bootstrap = useCallback(async () => {
+    setLoading(true);
+    setBootstrapError(false);
+    try {
+      await withRetries(resumeOrStart, BOOTSTRAP_RETRY_DELAYS_MS);
     } catch {
-      if (mode === "DAILY") {
-        await startFreshDaily();
-      } else {
-        await startFreshEndless();
-      }
+      // Most likely cause here is a redeploy in progress - the frontend can
+      // start serving before the backend is actually ready to accept
+      // connections. Surfaced to the player as a retry prompt rather than
+      // left as a silently empty board, per BOOTSTRAP_RETRY_DELAYS_MS above.
+      setBootstrapError(true);
     } finally {
       setLoading(false);
     }
-  }, [gameIdKey, mode, startFreshDaily, startFreshEndless, resetInput]);
+  }, [resumeOrStart]);
 
   useEffect(() => {
     bootstrap();
@@ -122,15 +170,11 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
   const startNewGame = useCallback(async () => {
     setLoading(true);
     try {
-      if (mode === "DAILY") {
-        await startFreshDaily();
-      } else {
-        await startFreshEndless();
-      }
+      await startFresh();
     } finally {
       setLoading(false);
     }
-  }, [mode, startFreshDaily, startFreshEndless]);
+  }, [startFresh]);
 
   const typeLetter = useCallback(
     (letter: string) => {
@@ -240,6 +284,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
     cursor,
     loading,
     error,
+    bootstrapError,
     shake,
     typeLetter,
     skip,
@@ -248,5 +293,6 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
     backspace,
     submitGuess,
     startNewGame,
+    retryBootstrap: bootstrap,
   };
 }
