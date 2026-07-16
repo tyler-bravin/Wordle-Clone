@@ -67,9 +67,12 @@
   justify-content: center;
 }
 
-@media (max-width: 360px) {
+/* Below ~400px every side pixel matters - the keyboard has 10 keys per row,
+   so shaving the container padding directly widens each key's tap target. */
+@media (max-width: 400px) {
   .app {
-    padding: 24px 8px 40px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
   .game__board-area {
     padding-left: 8px;
@@ -78,6 +81,13 @@
   .game__keyboard-area {
     padding-left: 6px;
     padding-right: 6px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app {
+    padding-top: 24px;
+    padding-bottom: 40px;
   }
 }
 

@@ -33,6 +33,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Prevent the ~300ms double-tap-zoom delay and text-selection highlight
+     that browsers apply by default - both make fast typing feel laggy or
+     cause a tap to register as something other than a click. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Below ~400px, 10 keys per row plus fixed gaps push individual keys under
+   the 44px tap-target floor, which is what causes mistyped letters - claw
+   back width by shrinking the gaps rather than the keys. */
+@media (max-width: 400px) {
+  .keyboard__row {
+    gap: 4px;
+  }
 }
 
 .key:hover:not(:disabled) {
@@ -55,6 +70,12 @@
   max-width: 66px;
   font-size: clamp(0.62rem, 2.2vw, 0.72rem);
   letter-spacing: 0.03em;
+}
+
+.key--backspace {
+  /* The backspace glyph reads as tiny at the same font-size as the "Enter"
+     label text, so size it independently rather than sharing key--wide's size. */
+  font-size: clamp(1.1rem, 4vw, 1.4rem);
 }
 
 .key--correct {

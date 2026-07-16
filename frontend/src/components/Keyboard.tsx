@@ -71,7 +71,7 @@ export function Keyboard({ guesses, onLetter, onEnter, onBackspace, onSkip, onAr
               return (
                 <button
                   key={key}
-                  className="key key--wide"
+                  className="key key--wide key--backspace"
                   onClick={onBackspace}
                   disabled={disabled}
                   aria-label="Delete letter"
