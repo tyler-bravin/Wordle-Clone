@@ -6,11 +6,21 @@ import { Board } from "./Board";
 import { Keyboard } from "./Keyboard";
 import { Toast } from "./Toast";
 import { ResultPanel } from "./ResultPanel";
+import { ConnectionError } from "./ConnectionError";
 
 const STATS_KEYS: Record<GameMode, string> = {
   DAILY: "wordle-stats-daily-v1",
   ENDLESS: "wordle-stats-endless-v1",
 };
+
+// Matches the backend's fixed wordle.word-length/max-guesses config. Used only
+// to size the board for the brief window before a game has loaded, so it
+// occupies the same footprint whether or not `game` has arrived yet - without
+// this, the board briefly disappears on every mode switch (its area unmounts
+// then remounts once the new game loads) and the keyboard visibly jumps up
+// and back down around it.
+const DEFAULT_WORD_LENGTH = 5;
+const DEFAULT_MAX_GUESSES = 6;
 
 interface GameProps {
   mode: GameMode;
@@ -26,6 +36,7 @@ export function Game({ mode, onModeChange }: GameProps) {
     cursor,
     loading,
     error,
+    bootstrapError,
     shake,
     typeLetter,
     skip,
@@ -34,13 +45,16 @@ export function Game({ mode, onModeChange }: GameProps) {
     backspace,
     submitGuess,
     startNewGame,
+    retryBootstrap,
   } = useGame(mode, (finished) => {
     if (finished.status === "WON" || finished.status === "LOST") {
       recordResult(finished.status, finished.guesses.length, finished.gameId);
     }
   });
 
-  const statusLine = loading || !game
+  const statusLine = bootstrapError
+    ? "connection error"
+    : loading || !game
     ? "loading..."
     : mode === "DAILY"
       ? `day #${game.roundNumber} · ${game.guesses.length}/${game.maxGuesses} guesses`
@@ -56,20 +70,22 @@ export function Game({ mode, onModeChange }: GameProps) {
 
       <div className="game__board-area">
         <Toast message={error} />
-        {game && (
-          <Board
-            wordLength={game.wordLength}
-            maxGuesses={game.maxGuesses}
-            guesses={game.guesses}
-            letters={letters}
-            cursor={cursor}
-            onTileClick={moveCursorTo}
-            shake={shake}
-          />
-        )}
+        <Board
+          wordLength={game?.wordLength ?? DEFAULT_WORD_LENGTH}
+          maxGuesses={game?.maxGuesses ?? DEFAULT_MAX_GUESSES}
+          guesses={game?.guesses ?? []}
+          letters={letters}
+          cursor={cursor}
+          onTileClick={moveCursorTo}
+          shake={shake}
+        />
       </div>
 
-      {finished && game.answer ? (
+      {bootstrapError ? (
+        <div className="game__keyboard-area">
+          <ConnectionError onRetry={retryBootstrap} />
+        </div>
+      ) : finished && game.answer ? (
         <ResultPanel
           mode={mode}
           status={game.status as "WON" | "LOST"}
