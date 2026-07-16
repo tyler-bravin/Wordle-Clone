@@ -47,7 +47,9 @@ export function ResultPanel({
 
       <div className="result-panel__divider" />
 
-      <p className="result-panel__heading">cat {mode.toLowerCase()}_stats.log</p>
+      <p className="result-panel__heading">
+        <span className="result-panel__prompt">$</span> cat {mode.toLowerCase()}_stats.log
+      </p>
       <div className="result-panel__grid">
         <div>
           <span className="result-panel__stat">{stats.gamesPlayed}</span>

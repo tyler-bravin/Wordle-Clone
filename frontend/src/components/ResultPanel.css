@@ -48,6 +48,11 @@
 .result-panel__heading {
   color: var(--text-dim);
   margin: 0 0 16px;
+  /* Matches .definition's font-size so this "cat" line reads the same size
+     as the "$ cat definition.log" heading right above it - both are the same
+     kind of log-header line and inherited font-size otherwise left this one
+     at .result-panel's larger 0.88rem base. */
+  font-size: 0.82rem;
 }
 
 .result-panel__grid {
