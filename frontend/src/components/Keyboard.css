@@ -74,8 +74,9 @@
 
 .key--backspace {
   /* The backspace glyph reads as tiny at the same font-size as the "Enter"
-     label text, so size it independently rather than sharing key--wide's size. */
-  font-size: clamp(1.1rem, 4vw, 1.4rem);
+     label text, so size it independently rather than sharing key--wide's size -
+     just a modest step above the letter keys, not a dramatically larger icon. */
+  font-size: clamp(0.95rem, 3.2vw, 1.15rem);
 }
 
 .key--correct {
