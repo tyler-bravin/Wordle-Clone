@@ -13,60 +13,31 @@ import java.util.UUID;
  * The answer is never exposed to the client until the game ends (see
  * {@link GameService#toResponse}), so it can't be inferred by inspecting responses
  * mid-game.
+ * <p>
+ * Immutable, and round-trips through {@link GameSessionStore} as JSON - every state
+ * change produces a new instance that must be explicitly saved back, rather than
+ * being mutated in place, since a Redis-backed store has no notion of a live shared
+ * object to mutate.
  */
-class GameSession {
+record GameSession(
+        UUID id,
+        GameMode mode,
+        /** Calendar day index for DAILY games, or shuffle-bag position for ENDLESS games. */
+        long roundNumber,
+        String answer,
+        int maxGuesses,
+        List<GuessResult> guesses,
+        GameStatus status
+) {
 
-    private final UUID id;
-    private final GameMode mode;
-    /** Calendar day index for DAILY games, or shuffle-bag position for ENDLESS games. */
-    private final long roundNumber;
-    private final String answer;
-    private final int maxGuesses;
-    private final List<GuessResult> guesses = new ArrayList<>();
-    private GameStatus status = GameStatus.IN_PROGRESS;
-
-    GameSession(UUID id, GameMode mode, long roundNumber, String answer, int maxGuesses) {
-        this.id = id;
-        this.mode = mode;
-        this.roundNumber = roundNumber;
-        this.answer = answer;
-        this.maxGuesses = maxGuesses;
+    static GameSession start(UUID id, GameMode mode, long roundNumber, String answer, int maxGuesses) {
+        return new GameSession(id, mode, roundNumber, answer, maxGuesses, List.of(), GameStatus.IN_PROGRESS);
     }
 
-    UUID id() {
-        return id;
-    }
-
-    GameMode mode() {
-        return mode;
-    }
-
-    long roundNumber() {
-        return roundNumber;
-    }
-
-    String answer() {
-        return answer;
-    }
-
-    int maxGuesses() {
-        return maxGuesses;
-    }
-
-    List<GuessResult> guesses() {
-        return guesses;
-    }
-
-    GameStatus status() {
-        return status;
-    }
-
-    void addGuess(GuessResult result) {
-        guesses.add(result);
-    }
-
-    void setStatus(GameStatus status) {
-        this.status = status;
+    GameSession withGuess(GuessResult result, GameStatus newStatus) {
+        List<GuessResult> updated = new ArrayList<>(guesses);
+        updated.add(result);
+        return new GameSession(id, mode, roundNumber, answer, maxGuesses, List.copyOf(updated), newStatus);
     }
 
     boolean isFinished() {

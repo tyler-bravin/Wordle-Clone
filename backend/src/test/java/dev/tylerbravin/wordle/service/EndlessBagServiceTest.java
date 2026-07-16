@@ -4,6 +4,7 @@ import dev.tylerbravin.wordle.config.GameProperties;
 import dev.tylerbravin.wordle.exception.PlayerNotFoundException;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
@@ -15,9 +16,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class EndlessBagServiceTest {
 
     private final WordService wordService = new WordService(
-            new GameProperties(6, 5, LocalDate.of(2024, 1, 1), 20240101L, "https://example.invalid")
+            new GameProperties(6, 5, LocalDate.of(2024, 1, 1), 20240101L, "https://example.invalid",
+                    Duration.ofDays(2), Duration.ofDays(30))
     );
-    private final EndlessBagService bagService = new EndlessBagService(wordService);
+    private final EndlessBagService bagService = new EndlessBagService(wordService, new InMemoryEndlessBagStore());
 
     @Test
     void dealsEveryWordExactlyOnceBeforeAnyRepeat() {

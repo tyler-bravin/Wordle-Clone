@@ -4,6 +4,7 @@ import dev.tylerbravin.wordle.config.GameProperties;
 import dev.tylerbravin.wordle.dto.WordDefinitionResponse;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -17,7 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DictionaryServiceTest {
 
     private final DictionaryService service = new DictionaryService(
-            new GameProperties(6, 5, LocalDate.of(2024, 1, 1), 20240101L, "https://example.invalid")
+            new GameProperties(6, 5, LocalDate.of(2024, 1, 1), 20240101L, "https://example.invalid",
+                    Duration.ofDays(2), Duration.ofDays(30))
     );
 
     @Test

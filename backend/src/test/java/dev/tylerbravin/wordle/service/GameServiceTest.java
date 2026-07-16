@@ -19,18 +19,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GameServiceTest {
 
-    private final GameProperties properties =
-            new GameProperties(6, 5, LocalDate.of(2024, 1, 1), 20240101L, "https://example.invalid");
+    private final GameProperties properties = new GameProperties(
+            6, 5, LocalDate.of(2024, 1, 1), 20240101L, "https://example.invalid",
+            Duration.ofDays(2), Duration.ofDays(30));
     private final WordService wordService = new WordService(properties);
-    private final EndlessBagService endlessBagService = new EndlessBagService(wordService);
+    private final EndlessBagService endlessBagService = new EndlessBagService(wordService, new InMemoryEndlessBagStore());
 
     // Anchored to a fixed instant rather than the real system clock, so these
     // tests are reproducible regardless of when they actually run - and, for
     // the day-boundary test below, so "a day passing" can be simulated by
     // just advancing this clock instead of needing to wait for real time to pass.
     private final MutableClock clock = new MutableClock(Instant.parse("2026-06-15T12:00:00Z"), ZoneOffset.UTC);
-    private final GameService gameService =
-            new GameService(wordService, endlessBagService, new GuessEvaluator(), properties, clock);
+    private final GameService gameService = new GameService(
+            wordService, endlessBagService, new GuessEvaluator(), properties, clock, new InMemoryGameSessionStore());
 
     @Test
     void dailyGameReportsAFutureUtcMidnightAsTheNextReset() {

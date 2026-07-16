@@ -16,18 +16,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * In-memory orchestration for both game modes: resolving the answer word for a new
- * game, validating and scoring guesses, and tracking session state.
+ * Orchestration for both game modes: resolving the answer word for a new game,
+ * validating and scoring guesses, and tracking session state.
  * <p>
- * Session state lives in a {@link ConcurrentHashMap} keyed by {@code gameId}, which
- * is fine for a single-instance portfolio deployment; a production service handling
- * real traffic would back this with Redis (or similar) so sessions survive restarts
- * and the app can scale horizontally.
+ * Session state is persisted via {@link GameSessionStore} (Redis-backed in
+ * production), keyed by {@code gameId}, so sessions survive a backend restart.
  */
 @Service
 public class GameService {
@@ -37,20 +33,22 @@ public class GameService {
     private final GuessEvaluator guessEvaluator;
     private final GameProperties properties;
     private final Clock clock;
-    private final Map<UUID, GameSession> sessions = new ConcurrentHashMap<>();
+    private final GameSessionStore sessionStore;
 
     public GameService(
             WordService wordService,
             EndlessBagService endlessBagService,
             GuessEvaluator guessEvaluator,
             GameProperties properties,
-            Clock clock
+            Clock clock,
+            GameSessionStore sessionStore
     ) {
         this.wordService = wordService;
         this.endlessBagService = endlessBagService;
         this.guessEvaluator = guessEvaluator;
         this.properties = properties;
         this.clock = clock;
+        this.sessionStore = sessionStore;
     }
 
     /**
@@ -70,9 +68,9 @@ public class GameService {
         String answer = wordService.wordForDay(today);
         long roundNumber = wordService.dayNumber(today);
 
-        GameSession session = new GameSession(
+        GameSession session = GameSession.start(
                 UUID.randomUUID(), GameMode.DAILY, roundNumber, answer, properties.maxGuesses());
-        sessions.put(session.id(), session);
+        sessionStore.save(session);
 
         return toResponse(session);
     }
@@ -90,9 +88,9 @@ public class GameService {
 
         EndlessBagService.DealtWord dealt = endlessBagService.nextWord(playerId);
 
-        GameSession session = new GameSession(
+        GameSession session = GameSession.start(
                 UUID.randomUUID(), GameMode.ENDLESS, dealt.position(), dealt.word(), properties.maxGuesses());
-        sessions.put(session.id(), session);
+        sessionStore.save(session);
 
         return new EndlessSessionResponse(
                 toResponse(session),
@@ -150,16 +148,22 @@ public class GameService {
         }
 
         var letterResults = guessEvaluator.evaluate(guess, session.answer());
-        session.addGuess(new GuessResult(guess, letterResults));
+        GuessResult result = new GuessResult(guess, letterResults);
 
         boolean won = letterResults.stream().allMatch(r -> r == LetterResult.CORRECT);
+        GameStatus newStatus;
         if (won) {
-            session.setStatus(GameStatus.WON);
-        } else if (session.guesses().size() >= session.maxGuesses()) {
-            session.setStatus(GameStatus.LOST);
+            newStatus = GameStatus.WON;
+        } else if (session.guesses().size() + 1 >= session.maxGuesses()) {
+            newStatus = GameStatus.LOST;
+        } else {
+            newStatus = GameStatus.IN_PROGRESS;
         }
 
-        return toResponse(session);
+        GameSession updated = session.withGuess(result, newStatus);
+        sessionStore.save(updated);
+
+        return toResponse(updated);
     }
 
     private UUID resolveOrCreatePlayer(String rawPlayerId) {
@@ -177,11 +181,7 @@ public class GameService {
     }
 
     private GameSession requireSession(UUID gameId) {
-        GameSession session = sessions.get(gameId);
-        if (session == null) {
-            throw new GameNotFoundException(gameId);
-        }
-        return session;
+        return sessionStore.find(gameId).orElseThrow(() -> new GameNotFoundException(gameId));
     }
 
     private GameStateResponse toResponse(GameSession session) {

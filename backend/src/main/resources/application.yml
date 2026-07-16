@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: wordle
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 wordle:
   # Comma-separated list of origins allowed to call the API (frontend URL(s))
@@ -20,6 +24,10 @@ wordle:
   # lookup. Free, no API key required. This isn't on any gameplay-critical path -
   # see DictionaryService for why that matters.
   dictionary-api-base-url: ${WORDLE_DICTIONARY_API_URL:https://api.dictionaryapi.dev/api/v2/entries/en}
+  # How long an idle game session / Endless shuffle-bag lives in Redis before
+  # expiring - bounds storage growth since there are no accounts to tie cleanup to.
+  session-ttl: ${WORDLE_SESSION_TTL:2d}
+  bag-ttl: ${WORDLE_BAG_TTL:30d}
 
 management:
   endpoints:

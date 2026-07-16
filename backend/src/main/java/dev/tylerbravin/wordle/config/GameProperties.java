@@ -2,6 +2,7 @@ package dev.tylerbravin.wordle.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
 import java.time.LocalDate;
 
 /**
@@ -14,6 +15,8 @@ import java.time.LocalDate;
  * @param shuffleSeed         fixed seed used to shuffle the Daily answer order at startup
  * @param dictionaryApiBaseUrl base URL of the external dictionary API used for the
  *                            post-game "what does this word mean" lookup
+ * @param sessionTtl          how long an idle game session lives in Redis before expiring
+ * @param bagTtl              how long an idle Endless shuffle-bag lives in Redis before expiring
  */
 @ConfigurationProperties(prefix = "wordle")
 public record GameProperties(
@@ -21,6 +24,8 @@ public record GameProperties(
         int wordLength,
         LocalDate epochDate,
         long shuffleSeed,
-        String dictionaryApiBaseUrl
+        String dictionaryApiBaseUrl,
+        Duration sessionTtl,
+        Duration bagTtl
 ) {
 }

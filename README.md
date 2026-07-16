@@ -30,15 +30,16 @@ A Wordle clone with a **Java/Spring Boot** backend and a **React/TypeScript** fr
 * **Fully Fluid Layout**: Tile and key sizing scale continuously with viewport width (`clamp()`), rather than jumping at a single breakpoint, so it holds up from small phones to ultrawide monitors.
 * **Subtle Sound Effects**: Synthesized on the fly with the Web Audio API rather than sample files - soft key ticks, per-tile reveal tones pitched by result, and a short win/lose sting timed to land after the flip cascade finishes. A `[sound]`/`[muted]` toggle in the titlebar turns it all off, persisted in `localStorage`.
 * **Dockerized & Coolify-Ready**: Multi-stage Dockerfiles for both services plus a `docker-compose.yaml` that doubles as the Coolify deployment target — see the Deployment section below.
+* **Redis-Backed Sessions**: Game sessions and Endless shuffle bags are persisted in Redis rather than backend heap, so an in-progress game survives a backend restart/redeploy — and the backend could scale to multiple instances without losing session state.
 
 ---
 
 ### 💻 Technologies Used
-* **Backend**: Java 21, Spring Boot 3 (Web, Validation, Actuator), Maven
+* **Backend**: Java 21, Spring Boot 3 (Web, Validation, Actuator, Data Redis), Maven
 * **Frontend**: React 19, TypeScript, Vite
 * **Styling**: Plain CSS with custom properties, `@fontsource` (Archivo + IBM Plex Mono, self-hosted, no external font CDN)
 * **Testing**: JUnit 5 + AssertJ (backend), `oxlint` + `tsc` (frontend)
-* **Deployment**: Docker (multi-stage builds), nginx (static frontend serving), Coolify + Traefik
+* **Deployment**: Docker (multi-stage builds), nginx (static frontend serving), Redis, Coolify + Traefik
 
 ---
 
@@ -102,7 +103,7 @@ Follow these steps to get a local copy of the project up and running.
 
 This assumes a Coolify instance with a domain you control and DNS already pointed at it.
 
-1.  **Create a new resource in Coolify**, type **Docker Compose**, pointed at this repo's root `docker-compose.yaml`.
+1.  **Create a new resource in Coolify**, type **Docker Compose**, pointed at this repo's root `docker-compose.yaml`. This also brings up a `redis` service — it needs no domain, only `backend` talks to it, over the compose network.
 2.  **Assign domains** per service in the Coolify UI — `backend` (e.g. `wordle-api.yourdomain.dev`) and `frontend` (e.g. `wordle.yourdomain.dev`). Coolify provisions Let's Encrypt certs and Traefik routing automatically.
 3.  **Set environment variables** on `backend`:
     * `WORDLE_ALLOWED_ORIGINS` = the frontend's final domain — the API rejects browser requests from anywhere else.
@@ -116,9 +117,7 @@ This assumes a Coolify instance with a domain you control and DNS already pointe
 
 This is a portfolio project, not a production service, so a few corners were cut deliberately:
 
-* **In-memory game state**: Not persisted to a database or Redis — a backend restart loses in-progress games and Endless shuffle bags. Finished-game stats live in the browser's `localStorage` instead, so they survive backend restarts.
-* **No accounts**: Endless mode's no-repeat guarantee is scoped to a `playerId` in `localStorage`, not a real user account.
-* **Single backend instance**: Sessions live in a `ConcurrentHashMap` on one instance — wouldn't horizontally scale without moving state to something shared like Redis.
+* **No accounts**: Endless mode's no-repeat guarantee is scoped to a `playerId` in `localStorage`, not a real user account. Game state lives in Redis keyed by `gameId`/`playerId` with a TTL (`WORDLE_SESSION_TTL` / `WORDLE_BAG_TTL`), rather than anything tied to a real user, since there's no login to tie it to.
 * **Third-party dictionary dependency**: The definition lookup depends on a free external API with no SLA. It's deliberately isolated from actual gameplay, so this only affects that one bonus feature — see `DictionaryService`'s Javadoc.
 
 ---

@@ -8,9 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Backs Endless mode with a classic "shuffle bag": each player gets their own
@@ -20,10 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * Endless session a player sees every word before any word repeats, but the
  * order itself is unpredictable.
  * <p>
- * State is held in memory only, keyed by a per-player {@code playerId} the client
- * persists (e.g. in localStorage) so the bag survives across individual Endless
- * rounds. It does not survive a server restart, matching the same tradeoff made
- * by {@link GameService} for game sessions.
+ * State is persisted via {@link EndlessBagStore}, keyed by a per-player
+ * {@code playerId} the client persists (e.g. in localStorage) so the bag survives
+ * across individual Endless rounds and backend restarts.
  */
 @Service
 public class EndlessBagService {
@@ -33,10 +30,11 @@ public class EndlessBagService {
     }
 
     private final List<String> answerPool;
-    private final Map<UUID, Deque<String>> bags = new ConcurrentHashMap<>();
+    private final EndlessBagStore bagStore;
 
-    public EndlessBagService(WordService wordService) {
+    public EndlessBagService(WordService wordService, EndlessBagStore bagStore) {
         this.answerPool = wordService.answerPool();
+        this.bagStore = bagStore;
     }
 
     /**
@@ -46,7 +44,7 @@ public class EndlessBagService {
      */
     public UUID createPlayer() {
         UUID playerId = UUID.randomUUID();
-        bags.put(playerId, freshBag());
+        bagStore.save(playerId, freshBag());
         return playerId;
     }
 
@@ -55,7 +53,7 @@ public class EndlessBagService {
      * @return true if a bag exists for this id (i.e. it's safe to deal from)
      */
     public boolean hasPlayer(UUID playerId) {
-        return bags.containsKey(playerId);
+        return bagStore.exists(playerId);
     }
 
     /**
@@ -67,15 +65,13 @@ public class EndlessBagService {
      * @throws PlayerNotFoundException if no bag exists for this id
      */
     public DealtWord nextWord(UUID playerId) {
-        Deque<String> bag = bags.get(playerId);
-        if (bag == null) {
-            throw new PlayerNotFoundException(playerId);
-        }
+        Deque<String> bag = bagStore.find(playerId).orElseThrow(() -> new PlayerNotFoundException(playerId));
         if (bag.isEmpty()) {
             bag = freshBag();
-            bags.put(playerId, bag);
         }
         String word = bag.poll();
+        bagStore.save(playerId, bag);
+
         int totalWords = answerPool.size();
         int position = totalWords - bag.size();
         return new DealtWord(word, position, totalWords);
@@ -87,8 +83,7 @@ public class EndlessBagService {
      *         size if the bag doesn't exist yet
      */
     public int wordsRemaining(UUID playerId) {
-        Deque<String> bag = bags.get(playerId);
-        return bag == null ? answerPool.size() : bag.size();
+        return bagStore.find(playerId).map(Deque::size).orElse(answerPool.size());
     }
 
     public int totalWords() {
