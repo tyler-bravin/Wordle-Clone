@@ -23,7 +23,7 @@ A Wordle clone with a **Java/Spring Boot** backend and a **React/TypeScript** fr
 * **Daily Mode**: One shared word per calendar day, the same for every player — derived server-side from a fixed-seed shuffle of the answer list, so it's stable across restarts but not just alphabetical. Once finished, a live countdown to the next UTC-midnight reset replaces the usual "~24h" guess.
 * **Endless Mode**: Unlimited rounds via a per-player shuffle bag — every answer word gets dealt exactly once before the bag reshuffles, so nothing repeats until you've genuinely seen the whole pool.
 * **Server-Authoritative Guessing**: The answer is never sent to the client until a game ends — every guess is scored on the backend, so it can't be read out of the network tab mid-game.
-* **Word Definition Lookup**: Once a game ends, the result panel fetches a definition for the answer from a free external dictionary API, rendered as another terminal-log-style block.
+* **Word Definition Lookup**: Once a game ends, the result panel fetches a definition for the answer from a free external dictionary API (falling back to a second source for words the first one's dataset tends to miss), rendered as another terminal-log-style block.
 * **Persistent Stats**: Win rate, streak, and guess distribution tracked per mode in `localStorage`, styled as a `cat stats.log` readout.
 * **Terminal-Styled UI**: Titlebar, blinking prompt, and `[daily]` / `[endless]` mode tabs — the same shell-session framing device used across my other projects.
 * **Skip-Letter Input**: Press Space (or the right arrow) to leave a gap for a letter you're unsure of and keep typing, then use the left/right arrows or click any tile in the row to jump back and fill it in - à la [lessgames.com's Wordless](https://lessgames.com/wordless).
@@ -118,7 +118,7 @@ This assumes a Coolify instance with a domain you control and DNS already pointe
 This is a portfolio project, not a production service, so a few corners were cut deliberately:
 
 * **No accounts**: Endless mode's no-repeat guarantee is scoped to a `playerId` in `localStorage`, not a real user account. Game state lives in Redis keyed by `gameId`/`playerId` with a TTL (`WORDLE_SESSION_TTL` / `WORDLE_BAG_TTL`), rather than anything tied to a real user, since there's no login to tie it to.
-* **Third-party dictionary dependency**: The definition lookup depends on a free external API with no SLA. It's deliberately isolated from actual gameplay, so this only affects that one bonus feature — see `DictionaryService`'s Javadoc.
+* **Third-party dictionary dependency**: The definition lookup depends on two free external APIs (a Wiktionary-backed fallback covers words the primary source's dataset tends to skip, like common function words) with no SLA between them. It's deliberately isolated from actual gameplay, so this only affects that one bonus feature — see `DictionaryService`'s Javadoc.
 
 ---
 

@@ -24,6 +24,9 @@ wordle:
   # lookup. Free, no API key required. This isn't on any gameplay-critical path -
   # see DictionaryService for why that matters.
   dictionary-api-base-url: ${WORDLE_DICTIONARY_API_URL:https://api.dictionaryapi.dev/api/v2/entries/en}
+  # Tried when the primary API has no entry for a word (e.g. common function
+  # words like "every" that api.dictionaryapi.dev's dataset tends to skip).
+  fallback-dictionary-api-base-url: ${WORDLE_FALLBACK_DICTIONARY_API_URL:https://en.wiktionary.org/api/rest_v1/page/definition}
   # How long an idle game session / Endless shuffle-bag lives in Redis before
   # expiring - bounds storage growth since there are no accounts to tie cleanup to.
   session-ttl: ${WORDLE_SESSION_TTL:2d}

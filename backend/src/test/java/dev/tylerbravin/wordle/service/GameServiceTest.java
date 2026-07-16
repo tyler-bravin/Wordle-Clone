@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class GameServiceTest {
 
     private final GameProperties properties = new GameProperties(
-            6, 5, LocalDate.of(2024, 1, 1), 20240101L, "https://example.invalid",
+            6, 5, LocalDate.of(2024, 1, 1), 20240101L, "https://example.invalid", "https://fallback.invalid",
             Duration.ofDays(2), Duration.ofDays(30));
     private final WordService wordService = new WordService(properties);
     private final EndlessBagService endlessBagService = new EndlessBagService(wordService, new InMemoryEndlessBagStore());

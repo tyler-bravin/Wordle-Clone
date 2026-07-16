@@ -15,6 +15,10 @@ import java.time.LocalDate;
  * @param shuffleSeed         fixed seed used to shuffle the Daily answer order at startup
  * @param dictionaryApiBaseUrl base URL of the external dictionary API used for the
  *                            post-game "what does this word mean" lookup
+ * @param fallbackDictionaryApiBaseUrl base URL of a second dictionary API tried when
+ *                            the primary one has no entry for a word - the two
+ *                            sources have different coverage gaps, so this catches
+ *                            some words (e.g. common function words) the primary misses
  * @param sessionTtl          how long an idle game session lives in Redis before expiring
  * @param bagTtl              how long an idle Endless shuffle-bag lives in Redis before expiring
  */
@@ -25,6 +29,7 @@ public record GameProperties(
         LocalDate epochDate,
         long shuffleSeed,
         String dictionaryApiBaseUrl,
+        String fallbackDictionaryApiBaseUrl,
         Duration sessionTtl,
         Duration bagTtl
 ) {
