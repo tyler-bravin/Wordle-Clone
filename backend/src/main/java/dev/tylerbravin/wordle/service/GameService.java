@@ -12,6 +12,7 @@ import dev.tylerbravin.wordle.exception.GameNotFoundException;
 import dev.tylerbravin.wordle.exception.WordNotInDictionaryException;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -35,18 +36,21 @@ public class GameService {
     private final EndlessBagService endlessBagService;
     private final GuessEvaluator guessEvaluator;
     private final GameProperties properties;
+    private final Clock clock;
     private final Map<UUID, GameSession> sessions = new ConcurrentHashMap<>();
 
     public GameService(
             WordService wordService,
             EndlessBagService endlessBagService,
             GuessEvaluator guessEvaluator,
-            GameProperties properties
+            GameProperties properties,
+            Clock clock
     ) {
         this.wordService = wordService;
         this.endlessBagService = endlessBagService;
         this.guessEvaluator = guessEvaluator;
         this.properties = properties;
+        this.clock = clock;
     }
 
     /**
@@ -62,7 +66,7 @@ public class GameService {
      * @return state for the newly created game
      */
     public GameStateResponse startDailyGame() {
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate today = LocalDate.now(clock);
         String answer = wordService.wordForDay(today);
         long roundNumber = wordService.dayNumber(today);
 
@@ -100,13 +104,27 @@ public class GameService {
 
     /**
      * Fetches the current state of an existing game, e.g. after a page reload.
+     * <p>
+     * For DAILY games specifically, a session created on an earlier calendar day
+     * is treated as {@link GameNotFoundException not found} rather than being
+     * resumed as-is - otherwise a player whose browser still has yesterday's
+     * (or any earlier) {@code gameId} cached would keep seeing that old day's
+     * word forever, since nothing else would ever prompt a fresh session to be
+     * created. The frontend already falls back to starting a new game whenever
+     * this call fails for any reason, so this reuses that path rather than
+     * needing special handling on the client.
      *
      * @param gameId id returned by a previous start/guess call
      * @return current state, with the answer populated if the game has ended
-     * @throws GameNotFoundException if no session exists for this id
+     * @throws GameNotFoundException if no session exists for this id, or if it's
+     *         a DAILY session that no longer belongs to today
      */
     public GameStateResponse getGame(UUID gameId) {
-        return toResponse(requireSession(gameId));
+        GameSession session = requireSession(gameId);
+        if (session.mode() == GameMode.DAILY && session.roundNumber() != wordService.dayNumber(LocalDate.now(clock))) {
+            throw new GameNotFoundException(gameId);
+        }
+        return toResponse(session);
     }
 
     /**
@@ -184,6 +202,6 @@ public class GameService {
 
     /** The next UTC-midnight boundary from right now - i.e. when the next Daily word unlocks. */
     private Instant nextUtcMidnight() {
-        return LocalDate.now(ZoneOffset.UTC).plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        return LocalDate.now(clock).plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 }
