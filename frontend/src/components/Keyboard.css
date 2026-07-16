@@ -72,11 +72,12 @@
   letter-spacing: 0.03em;
 }
 
-.key--backspace {
-  /* The backspace glyph reads as tiny at the same font-size as the "Enter"
-     label text, so size it independently rather than sharing key--wide's size -
-     just a modest step above the letter keys, not a dramatically larger icon. */
-  font-size: clamp(0.95rem, 3.2vw, 1.15rem);
+.key--backspace svg {
+  /* Unicode ⌫ rendered inconsistently across platforms - iOS in particular
+     drew it much smaller than desktop Chrome at the same font-size, so an SVG
+     with an explicit px floor replaces it for a size that's actually consistent. */
+  width: clamp(18px, 5vw, 24px);
+  height: clamp(18px, 5vw, 24px);
 }
 
 .key--correct {
