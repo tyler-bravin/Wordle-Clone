@@ -21,14 +21,17 @@ import java.util.regex.Pattern;
  * shared as a link anyone can start a fresh attempt against (see
  * {@link GameService#startCustomGame}).
  * <p>
- * Unlike Daily/Endless, a Custom word isn't checked against the curated
- * {@code allowed.txt}/{@code answers.txt} dictionaries - those are filtered to
+ * The word itself isn't checked against the curated {@code allowed.txt}/
+ * {@code answers.txt} dictionaries Daily/Endless use - those are filtered to
  * one fixed length and specific to the original Wordle answer set. Instead,
  * "is this a real English word" is checked once, here, at creation time via
  * {@link DictionaryService#lookup} - the same lookup used for the post-game
- * definition flourish, just repurposed as an existence check. Guesses
- * submitted against a Custom game are never dictionary-checked at all - see
- * {@link GameService#submitGuess}.
+ * definition flourish, just repurposed as an existence check. This is a live
+ * external API call, separate from the much larger bundled word list
+ * ({@link WordService#isValidCustomGuess}) that guesses are checked against
+ * during play - the two aren't guaranteed to fully agree, which is why
+ * {@link GameService#submitGuess} always accepts the puzzle's own answer
+ * regardless of whether it happens to be in that bundled list.
  */
 @Service
 public class CustomPuzzleService {

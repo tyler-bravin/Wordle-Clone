@@ -157,8 +157,12 @@ public class GameService {
      * @return updated state, including the answer if this guess won or lost the game
      * @throws GameNotFoundException if no session exists for this id
      * @throws GameAlreadyFinishedException if the game already ended
-     * @throws WordNotInDictionaryException if the guess isn't a recognized word (DAILY/ENDLESS only -
-     *         CUSTOM guesses aren't dictionary-checked, see {@link CustomPuzzleService}'s Javadoc)
+     * @throws WordNotInDictionaryException if the guess isn't a recognized word - DAILY/ENDLESS check
+     *         against the curated Wordle dictionary, CUSTOM against a much broader general English
+     *         word list (see {@link WordService#isValidCustomGuess}), with the puzzle's own answer
+     *         always accepted regardless of dictionary membership (a Custom answer is verified via
+     *         a live external lookup at creation time, which isn't guaranteed to agree with whatever
+     *         static list guesses are checked against - see {@link CustomPuzzleService}'s Javadoc)
      */
     public GameStateResponse submitGuess(UUID gameId, String rawGuess) {
         GameSession session = requireSession(gameId);
@@ -168,7 +172,11 @@ public class GameService {
         }
 
         String guess = rawGuess.trim().toLowerCase();
-        if (session.mode() != GameMode.CUSTOM && !wordService.isValidGuess(guess)) {
+        boolean recognized = switch (session.mode()) {
+            case CUSTOM -> guess.equals(session.answer()) || wordService.isValidCustomGuess(guess);
+            case DAILY, ENDLESS -> wordService.isValidGuess(guess);
+        };
+        if (!recognized) {
             throw new WordNotInDictionaryException(guess);
         }
 

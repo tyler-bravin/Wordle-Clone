@@ -136,16 +136,41 @@ class GameServiceTest {
     }
 
     @Test
-    void submitGuessAcceptsNonDictionaryWordsForCustomGames() {
+    void submitGuessAcceptsWordsFromTheBroaderCustomDictionaryEvenIfNotInTheCuratedList() {
         UUID puzzleId = UUID.randomUUID();
         customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
         GameStateResponse started = gameService.startCustomGame(puzzleId);
 
-        // "bbbbbb" isn't a dictionary word at all - Custom-mode guesses aren't
-        // checked against one, unlike Daily/Endless (see submitGuess's Javadoc).
-        GameStateResponse response = gameService.submitGuess(started.gameId(), "bbbbbb");
+        // "batter" is a real word but not 5 letters, so it isn't in the curated
+        // Daily/Endless dictionary - Custom mode checks a much broader list instead.
+        GameStateResponse response = gameService.submitGuess(started.gameId(), "batter");
 
         assertThat(response.guesses()).hasSize(1);
+    }
+
+    @Test
+    void submitGuessRejectsGibberishForCustomGames() {
+        UUID puzzleId = UUID.randomUUID();
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
+        GameStateResponse started = gameService.startCustomGame(puzzleId);
+
+        assertThatThrownBy(() -> gameService.submitGuess(started.gameId(), "zzqxxz"))
+                .isInstanceOf(WordNotInDictionaryException.class);
+    }
+
+    @Test
+    void submitGuessAlwaysAcceptsTheCustomPuzzlesOwnAnswerEvenIfSomehowNotInTheBundledDictionary() {
+        UUID puzzleId = UUID.randomUUID();
+        // A word the dictionary API (used at creation time) might recognize but
+        // the bundled static list doesn't - simulated here since we can't force
+        // that mismatch through a real word. The guarantee under test is that the
+        // exact-answer bypass in submitGuess doesn't depend on dictionary membership.
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "zzqxxz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
+        GameStateResponse started = gameService.startCustomGame(puzzleId);
+
+        GameStateResponse response = gameService.submitGuess(started.gameId(), "zzqxxz");
+
+        assertThat(response.status().name()).isEqualTo("WON");
     }
 
     @Test
