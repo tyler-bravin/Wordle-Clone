@@ -16,11 +16,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
- * Loads the answer list (curated solution words) and the full valid-guess dictionary
- * from the classpath at startup, and resolves which word applies for a given daily
- * puzzle or Endless round.
+ * Loads the answer list (curated solution words), the full valid-guess dictionary,
+ * and the broader Custom-mode guess dictionary from the classpath at startup, and
+ * resolves which word applies for a given daily puzzle or Endless round.
  * <p>
  * The bundled answer list ships in alphabetical order, so it is shuffled once at
  * startup with a fixed seed to produce a sequence that is stable across restarts
@@ -33,13 +34,22 @@ public class WordService {
     private final List<String> dailyAnswers;
     private final List<String> answerPool;
     private final Set<String> validGuesses;
+    private final Set<String> customGuesses;
     private final GameProperties properties;
 
     public WordService(GameProperties properties) {
         this.properties = properties;
-        this.validGuesses = loadWordSet("words/allowed.txt");
+        this.validGuesses = loadWordSet("words/allowed.txt", word -> word.length() == properties.wordLength());
 
-        this.answerPool = List.copyOf(loadWordSet("words/answers.txt"));
+        // Daily/Endless guesses are checked against the curated, exactly-5-letter
+        // Wordle dictionary above; Custom mode's words vary in length (3-8) and
+        // aren't Wordle-specific, so it draws from a much broader general English
+        // word list instead - see CustomPuzzleService.MIN_WORD_LENGTH/MAX_WORD_LENGTH.
+        this.customGuesses = loadWordSet("words/custom_guesses.txt",
+                word -> word.length() >= CustomPuzzleService.MIN_WORD_LENGTH
+                        && word.length() <= CustomPuzzleService.MAX_WORD_LENGTH);
+
+        this.answerPool = List.copyOf(loadWordSet("words/answers.txt", word -> word.length() == properties.wordLength()));
 
         List<String> shuffledForDaily = new ArrayList<>(answerPool);
         Collections.shuffle(shuffledForDaily, new Random(properties.shuffleSeed()));
@@ -76,14 +86,29 @@ public class WordService {
     }
 
     /**
-     * Checks whether a word is accepted as a guess, i.e. present in the full
-     * (much larger) valid-guess dictionary rather than only the curated answer list.
+     * Checks whether a word is accepted as a Daily/Endless guess, i.e. present in
+     * the full (much larger) valid-guess dictionary rather than only the curated
+     * answer list.
      *
      * @param word candidate guess, any casing
      * @return true if the word is a recognized 5-letter English word
      */
     public boolean isValidGuess(String word) {
         return validGuesses.contains(word.toLowerCase());
+    }
+
+    /**
+     * Checks whether a word is accepted as a Custom-mode guess - a much broader,
+     * length-agnostic (3-8 letter) general English dictionary, separate from the
+     * curated Wordle-specific list {@link #isValidGuess} uses. Doesn't guarantee a
+     * given puzzle's own answer is included (see {@code GameService#submitGuess}
+     * for the exact-answer bypass that covers that gap).
+     *
+     * @param word candidate guess, any casing
+     * @return true if the word is a recognized 3-8 letter English word
+     */
+    public boolean isValidCustomGuess(String word) {
+        return customGuesses.contains(word.toLowerCase());
     }
 
     /**
@@ -99,12 +124,13 @@ public class WordService {
 
     /**
      * Reads a newline-delimited word list from the classpath, lowercasing and
-     * filtering to the configured word length.
+     * keeping only lines that satisfy {@code lengthFilter}.
      *
      * @param classpathLocation path under {@code src/main/resources}
+     * @param lengthFilter      kept for words whose length satisfies this
      * @return the set of words found, never empty
      */
-    private Set<String> loadWordSet(String classpathLocation) {
+    private Set<String> loadWordSet(String classpathLocation, Predicate<String> lengthFilter) {
         Set<String> words = new HashSet<>();
         ClassPathResource resource = new ClassPathResource(classpathLocation);
         try (BufferedReader reader = new BufferedReader(
@@ -112,7 +138,7 @@ public class WordService {
             String line;
             while ((line = reader.readLine()) != null) {
                 String word = line.trim().toLowerCase();
-                if (word.length() == properties.wordLength()) {
+                if (lengthFilter.test(word)) {
                     words.add(word);
                 }
             }
