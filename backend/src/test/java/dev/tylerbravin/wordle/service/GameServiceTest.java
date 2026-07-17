@@ -6,6 +6,7 @@ import dev.tylerbravin.wordle.dto.GameMode;
 import dev.tylerbravin.wordle.dto.GameStateResponse;
 import dev.tylerbravin.wordle.exception.CustomPuzzleNotFoundException;
 import dev.tylerbravin.wordle.exception.GameNotFoundException;
+import dev.tylerbravin.wordle.exception.HardModeViolationException;
 import dev.tylerbravin.wordle.exception.WordNotInDictionaryException;
 import org.junit.jupiter.api.Test;
 
@@ -36,11 +37,11 @@ class GameServiceTest {
     private final MutableClock clock = new MutableClock(Instant.parse("2026-06-15T12:00:00Z"), ZoneOffset.UTC);
     private final GameService gameService = new GameService(
             wordService, endlessBagService, new GuessEvaluator(), properties, clock,
-            new InMemoryGameSessionStore(), customPuzzleStore);
+            new InMemoryGameSessionStore(), customPuzzleStore, new HardModeValidator());
 
     @Test
     void dailyGameReportsAFutureUtcMidnightAsTheNextReset() {
-        GameStateResponse response = gameService.startDailyGame();
+        GameStateResponse response = gameService.startDailyGame(false);
 
         assertThat(response.mode()).isEqualTo(GameMode.DAILY);
         assertThat(response.nextDailyResetAt()).isNotNull();
@@ -52,7 +53,7 @@ class GameServiceTest {
 
     @Test
     void dailyResetTimestampIsExactlyAUtcMidnight() {
-        GameStateResponse response = gameService.startDailyGame();
+        GameStateResponse response = gameService.startDailyGame(false);
 
         var utcDateTime = response.nextDailyResetAt().atZone(ZoneOffset.UTC);
         assertThat(utcDateTime.getHour()).isZero();
@@ -62,7 +63,7 @@ class GameServiceTest {
 
     @Test
     void endlessGameHasNoNextDailyReset() {
-        EndlessSessionResponse response = gameService.startEndlessGame(null);
+        EndlessSessionResponse response = gameService.startEndlessGame(null, false);
 
         assertThat(response.game().mode()).isEqualTo(GameMode.ENDLESS);
         assertThat(response.game().nextDailyResetAt()).isNull();
@@ -70,7 +71,7 @@ class GameServiceTest {
 
     @Test
     void getGameRecomputesTheResetTimestampRatherThanFreezingItAtCreation() {
-        GameStateResponse started = gameService.startDailyGame();
+        GameStateResponse started = gameService.startDailyGame(false);
         GameStateResponse fetched = gameService.getGame(started.gameId());
 
         // Not asserting exact equality of the instant (both calls happen close
@@ -83,7 +84,7 @@ class GameServiceTest {
 
     @Test
     void resumingADailyGameOnTheSameDayReturnsItNormally() {
-        GameStateResponse started = gameService.startDailyGame();
+        GameStateResponse started = gameService.startDailyGame(false);
 
         GameStateResponse resumed = gameService.getGame(started.gameId());
 
@@ -97,7 +98,7 @@ class GameServiceTest {
         // that still has yesterday's gameId cached should NOT keep resuming
         // yesterday's word forever just because nothing else prompted a fresh
         // session - see GameService.getGame's Javadoc for the reasoning.
-        GameStateResponse startedYesterday = gameService.startDailyGame();
+        GameStateResponse startedYesterday = gameService.startDailyGame(false);
 
         clock.advanceTo(clock.instant().plus(Duration.ofDays(1)));
 
@@ -109,7 +110,7 @@ class GameServiceTest {
     void resumingAnEndlessGameAcrossMidnightStillWorks() {
         // Endless has no "belongs to a specific day" concept, unlike Daily -
         // an in-progress round should survive a day boundary just fine.
-        EndlessSessionResponse started = gameService.startEndlessGame(null);
+        EndlessSessionResponse started = gameService.startEndlessGame(null, false);
 
         clock.advanceTo(clock.instant().plus(Duration.ofDays(1)));
 
@@ -120,7 +121,7 @@ class GameServiceTest {
     @Test
     void startCustomGameUsesThePuzzlesWordAndMaxGuesses() {
         UUID puzzleId = UUID.randomUUID();
-        customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 4, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 4, clock.instant(), clock.instant().plus(Duration.ofHours(24)), false));
 
         GameStateResponse response = gameService.startCustomGame(puzzleId);
 
@@ -138,7 +139,7 @@ class GameServiceTest {
     @Test
     void submitGuessAcceptsWordsFromTheBroaderCustomDictionaryEvenIfNotInTheCuratedList() {
         UUID puzzleId = UUID.randomUUID();
-        customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24)), false));
         GameStateResponse started = gameService.startCustomGame(puzzleId);
 
         // "batter" is a real word but not 5 letters, so it isn't in the curated
@@ -151,7 +152,7 @@ class GameServiceTest {
     @Test
     void submitGuessRejectsGibberishForCustomGames() {
         UUID puzzleId = UUID.randomUUID();
-        customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24)), false));
         GameStateResponse started = gameService.startCustomGame(puzzleId);
 
         assertThatThrownBy(() -> gameService.submitGuess(started.gameId(), "zzqxxz"))
@@ -165,7 +166,7 @@ class GameServiceTest {
         // the bundled static list doesn't - simulated here since we can't force
         // that mismatch through a real word. The guarantee under test is that the
         // exact-answer bypass in submitGuess doesn't depend on dictionary membership.
-        customPuzzleStore.save(new CustomPuzzle(puzzleId, "zzqxxz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "zzqxxz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24)), false));
         GameStateResponse started = gameService.startCustomGame(puzzleId);
 
         GameStateResponse response = gameService.submitGuess(started.gameId(), "zzqxxz");
@@ -176,7 +177,7 @@ class GameServiceTest {
     @Test
     void submittingTheCorrectGuessWinsACustomGameOfAnyLength() {
         UUID puzzleId = UUID.randomUUID();
-        customPuzzleStore.save(new CustomPuzzle(puzzleId, "sky", 3, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "sky", 3, clock.instant(), clock.instant().plus(Duration.ofHours(24)), false));
         GameStateResponse started = gameService.startCustomGame(puzzleId);
 
         GameStateResponse response = gameService.submitGuess(started.gameId(), "sky");
@@ -187,10 +188,47 @@ class GameServiceTest {
 
     @Test
     void submitGuessStillRejectsNonDictionaryWordsForDailyGames() {
-        GameStateResponse started = gameService.startDailyGame();
+        GameStateResponse started = gameService.startDailyGame(false);
 
         assertThatThrownBy(() -> gameService.submitGuess(started.gameId(), "zzzzz"))
                 .isInstanceOf(WordNotInDictionaryException.class);
+    }
+
+    @Test
+    void submitGuessRejectsAHardModeViolationAndDoesNotRecordIt() {
+        UUID puzzleId = UUID.randomUUID();
+        customPuzzleStore.save(new CustomPuzzle(
+                puzzleId, "crane", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24)), true));
+        GameStateResponse started = gameService.startCustomGame(puzzleId);
+        assertThat(started.hardMode()).isTrue();
+
+        // "board" vs "crane" reveals position 3 ('a', 1-indexed) CORRECT and 'r' PRESENT
+        // (crane has an r, just not at board's position).
+        gameService.submitGuess(started.gameId(), "board");
+
+        // "moist" keeps neither constraint - no 'a' in position 3, no 'r' at all.
+        assertThatThrownBy(() -> gameService.submitGuess(started.gameId(), "moist"))
+                .isInstanceOf(HardModeViolationException.class);
+
+        // The rejected guess must not have been recorded or counted against maxGuesses.
+        GameStateResponse afterViolation = gameService.getGame(started.gameId());
+        assertThat(afterViolation.guesses()).hasSize(1);
+    }
+
+    @Test
+    void submitGuessAcceptsACompliantGuessInHardMode() {
+        UUID puzzleId = UUID.randomUUID();
+        customPuzzleStore.save(new CustomPuzzle(
+                puzzleId, "crane", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24)), true));
+        GameStateResponse started = gameService.startCustomGame(puzzleId);
+
+        gameService.submitGuess(started.gameId(), "board"); // locks position 3 = 'a', requires an 'r'
+
+        // "crane" keeps 'a' in position 3 and contains 'r' - fully compliant, and also the answer.
+        GameStateResponse response = gameService.submitGuess(started.gameId(), "crane");
+
+        assertThat(response.guesses()).hasSize(2);
+        assertThat(response.status().name()).isEqualTo("WON");
     }
 
     /** A Clock whose current instant can be advanced mid-test, to simulate day boundaries passing. */

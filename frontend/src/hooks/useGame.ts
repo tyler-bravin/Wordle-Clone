@@ -60,8 +60,18 @@ const TILE_FLIP_STAGGER_MS = 240;
  * keep drawing from the same no-repeat shuffle bag rather than starting a new one.
  * Custom requires a `puzzleId` (the id from the shared `/custom/{puzzleId}`
  * link) and resumes/starts an attempt scoped to that specific puzzle.
+ *
+ * `hardMode` only applies to *fresh* DAILY/ENDLESS starts - like `maxGuesses`,
+ * it's baked into a session at creation and stays fixed for that session's
+ * lifetime even if the caller's preference changes later. Ignored for CUSTOM,
+ * whose hard-mode setting comes from the puzzle itself (the creator's choice).
  */
-export function useGame(mode: GameMode, onFinished: (game: GameState) => void, puzzleId?: string) {
+export function useGame(
+  mode: GameMode,
+  onFinished: (game: GameState) => void,
+  puzzleId?: string,
+  hardMode: boolean = false
+) {
   const [game, setGame] = useState<GameState | null>(null);
   const [endlessBag, setEndlessBag] = useState<EndlessBagInfo | null>(null);
   const [letters, setLetters] = useState<string[]>([]);
@@ -94,16 +104,16 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void, p
   }, []);
 
   const startFreshDaily = useCallback(async () => {
-    const fresh = await gameApi.startDaily();
+    const fresh = await gameApi.startDaily(hardMode);
     localStorage.setItem(DAILY_GAME_ID_KEY, fresh.gameId);
     setGame(fresh);
     setEndlessBag(null);
     resetInput(fresh.wordLength);
-  }, [resetInput]);
+  }, [hardMode, resetInput]);
 
   const startFreshEndless = useCallback(async () => {
     const savedPlayerId = localStorage.getItem(ENDLESS_PLAYER_ID_KEY);
-    const session = await gameApi.startEndless(savedPlayerId);
+    const session = await gameApi.startEndless(savedPlayerId, hardMode);
     localStorage.setItem(ENDLESS_PLAYER_ID_KEY, session.playerId);
     localStorage.setItem(ENDLESS_GAME_ID_KEY, session.game.gameId);
     setGame(session.game);
@@ -112,7 +122,7 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void, p
       totalWordsInBag: session.totalWordsInBag,
     });
     resetInput(session.game.wordLength);
-  }, [resetInput]);
+  }, [hardMode, resetInput]);
 
   const startFreshCustom = useCallback(async () => {
     if (!puzzleId) return;
@@ -286,7 +296,10 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void, p
       }
     } catch (err) {
       if (err instanceof ApiRequestError) {
-        showError(err.status === 400 ? "Not in word list" : err.message);
+        // The server already crafts a specific message for every rejection
+        // reason (not a word, hard-mode violation, etc.) - show it as-is
+        // rather than collapsing every 400 down to one generic string.
+        showError(err.message);
       } else {
         showError("Something went wrong - try again");
       }

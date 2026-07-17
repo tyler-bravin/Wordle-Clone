@@ -14,5 +14,5 @@ import java.util.UUID;
  * what {@link RedisCustomPuzzleStore} derives the Redis TTL from, so the link
  * actually stops working once it passes rather than just being cosmetic.
  */
-record CustomPuzzle(UUID id, String word, int maxGuesses, Instant createdAt, Instant expiresAt) {
+record CustomPuzzle(UUID id, String word, int maxGuesses, Instant createdAt, Instant expiresAt, boolean hardMode) {
 }

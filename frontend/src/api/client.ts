@@ -36,13 +36,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const gameApi = {
-  startDaily: () => request<GameState>("/api/game/daily/start", { method: "POST" }),
+  startDaily: (hardMode: boolean) =>
+    request<GameState>("/api/game/daily/start", {
+      method: "POST",
+      body: JSON.stringify({ hardMode }),
+    }),
 
   /** Pass a previously issued playerId to keep drawing from the same shuffle bag. */
-  startEndless: (playerId?: string | null) =>
+  startEndless: (playerId: string | null | undefined, hardMode: boolean) =>
     request<EndlessSessionState>("/api/game/endless/start", {
       method: "POST",
-      body: JSON.stringify({ playerId: playerId ?? null }),
+      body: JSON.stringify({ playerId: playerId ?? null, hardMode }),
     }),
 
   getGame: (gameId: string) => request<GameState>(`/api/game/${gameId}`),
@@ -59,10 +63,10 @@ export const dictionaryApi = {
 };
 
 export const customApi = {
-  create: (word: string, maxGuesses: number, expiresInHours: number) =>
+  create: (word: string, maxGuesses: number, expiresInHours: number, hardMode: boolean) =>
     request<CreateCustomPuzzleResponse>("/api/custom", {
       method: "POST",
-      body: JSON.stringify({ word, maxGuesses, expiresInHours }),
+      body: JSON.stringify({ word, maxGuesses, expiresInHours, hardMode }),
     }),
 
   start: (puzzleId: string) =>

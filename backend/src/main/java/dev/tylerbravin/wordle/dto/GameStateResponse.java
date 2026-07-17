@@ -23,6 +23,9 @@ import java.util.UUID;
  * @param nextDailyResetAt for DAILY games, the next UTC-midnight boundary - i.e. when
  *                         a new Daily word unlocks. {@code null} for ENDLESS/CUSTOM, which
  *                         have no equivalent global reset.
+ * @param hardMode         whether this specific session enforces Hard Mode guess constraints -
+ *                         fixed for its lifetime; may differ from the player's current toggle
+ *                         preference if that changed after this session started
  */
 public record GameStateResponse(
         UUID gameId,
@@ -33,6 +36,7 @@ public record GameStateResponse(
         List<GuessResult> guesses,
         GameStatus status,
         String answer,
-        Instant nextDailyResetAt
+        Instant nextDailyResetAt,
+        boolean hardMode
 ) {
 }

@@ -64,10 +64,12 @@ public class CustomPuzzleService {
      * @param maxGuesses     guesses allowed, must be within {@value MIN_GUESSES}-{@value MAX_GUESSES}
      * @param expiresInHours how long the link stays playable, {@value MIN_EXPIRY_HOURS}-{@value MAX_EXPIRY_HOURS}
      *                       hours from now - links aren't permanent by default, the creator picks how long
+     * @param hardMode       whether every session started from this puzzle enforces Hard Mode - the
+     *                       creator's choice, not each individual guesser's (see {@link HardModeValidator})
      * @return the id of the newly created puzzle, for building a shareable {@code /custom/{id}} link
      * @throws InvalidCustomWordException if the word, guess count, or expiry fails any validation step
      */
-    public UUID createPuzzle(String rawWord, int maxGuesses, int expiresInHours) {
+    public UUID createPuzzle(String rawWord, int maxGuesses, int expiresInHours, boolean hardMode) {
         String word = rawWord == null ? "" : rawWord.trim().toLowerCase();
 
         if (maxGuesses < MIN_GUESSES || maxGuesses > MAX_GUESSES) {
@@ -91,7 +93,7 @@ public class CustomPuzzleService {
 
         Instant now = clock.instant();
         CustomPuzzle puzzle = new CustomPuzzle(
-                UUID.randomUUID(), word, maxGuesses, now, now.plus(Duration.ofHours(expiresInHours)));
+                UUID.randomUUID(), word, maxGuesses, now, now.plus(Duration.ofHours(expiresInHours)), hardMode);
         puzzleStore.save(puzzle);
         return puzzle.id();
     }

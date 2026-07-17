@@ -30,6 +30,7 @@ export function CreateCustomPuzzle({ onClose }: CreateCustomPuzzleProps) {
   const [word, setWord] = useState("");
   const [maxGuesses, setMaxGuesses] = useState(6);
   const [expiresInHours, setExpiresInHours] = useState(DEFAULT_EXPIRY_HOURS);
+  const [hardMode, setHardMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export function CreateCustomPuzzle({ onClose }: CreateCustomPuzzleProps) {
     setError(null);
     setSubmitting(true);
     try {
-      const { puzzleId } = await customApi.create(word, maxGuesses, expiresInHours);
+      const { puzzleId } = await customApi.create(word, maxGuesses, expiresInHours, hardMode);
       setLink(`${window.location.origin}/custom/${puzzleId}`);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Something went wrong - try again");
@@ -66,7 +67,10 @@ export function CreateCustomPuzzle({ onClose }: CreateCustomPuzzleProps) {
         <p className="create-custom__prompt">
           <span className="create-custom__dollar">$</span> puzzle created - share this link
         </p>
-        <p className="create-custom__expiry">expires in {formatExpiry(expiresInHours)}</p>
+        <p className="create-custom__expiry">
+          expires in {formatExpiry(expiresInHours)}
+          {hardMode ? " · hard mode" : ""}
+        </p>
         <div className="create-custom__link-row">
           <input
             className="create-custom__link"
@@ -140,6 +144,19 @@ export function CreateCustomPuzzle({ onClose }: CreateCustomPuzzleProps) {
             </option>
           ))}
         </select>
+      </label>
+
+      <label className="create-custom__checkbox-field">
+        <input
+          type="checkbox"
+          checked={hardMode}
+          onChange={(e) => setHardMode(e.target.checked)}
+          disabled={submitting}
+        />
+        <span>
+          hard mode
+          <span className="create-custom__hint"> - every guess must reuse revealed hints</span>
+        </span>
       </label>
 
       {error && <p className="create-custom__error">{error}</p>}

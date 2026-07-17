@@ -33,7 +33,7 @@ class CustomPuzzleServiceTest {
     void createsAndStoresAValidPuzzle() {
         wordExists("crane");
 
-        UUID puzzleId = service.createPuzzle("crane", 5, 24);
+        UUID puzzleId = service.createPuzzle("crane", 5, 24, false);
 
         CustomPuzzle stored = puzzleStore.find(puzzleId).orElseThrow();
         assertThat(stored.word()).isEqualTo("crane");
@@ -43,59 +43,68 @@ class CustomPuzzleServiceTest {
     }
 
     @Test
+    void storesTheCreatorsHardModeChoice() {
+        wordExists("crane");
+
+        UUID puzzleId = service.createPuzzle("crane", 5, 24, true);
+
+        assertThat(puzzleStore.find(puzzleId).orElseThrow().hardMode()).isTrue();
+    }
+
+    @Test
     void normalizesCasingAndWhitespaceBeforeStoring() {
         wordExists("crane");
 
-        UUID puzzleId = service.createPuzzle("  CRANE  ", 5, 24);
+        UUID puzzleId = service.createPuzzle("  CRANE  ", 5, 24, false);
 
         assertThat(puzzleStore.find(puzzleId).orElseThrow().word()).isEqualTo("crane");
     }
 
     @Test
     void rejectsWordShorterThanMinimumLength() {
-        assertThatThrownBy(() -> service.createPuzzle("ab", 5, 24))
+        assertThatThrownBy(() -> service.createPuzzle("ab", 5, 24, false))
                 .isInstanceOf(InvalidCustomWordException.class);
     }
 
     @Test
     void rejectsWordLongerThanMaximumLength() {
-        assertThatThrownBy(() -> service.createPuzzle("abcdefghi", 5, 24))
+        assertThatThrownBy(() -> service.createPuzzle("abcdefghi", 5, 24, false))
                 .isInstanceOf(InvalidCustomWordException.class);
     }
 
     @Test
     void rejectsNonAlphabeticWord() {
-        assertThatThrownBy(() -> service.createPuzzle("cra9e", 5, 24))
+        assertThatThrownBy(() -> service.createPuzzle("cra9e", 5, 24, false))
                 .isInstanceOf(InvalidCustomWordException.class);
     }
 
     @Test
     void rejectsGuessCountBelowMinimum() {
-        assertThatThrownBy(() -> service.createPuzzle("crane", 2, 24))
+        assertThatThrownBy(() -> service.createPuzzle("crane", 2, 24, false))
                 .isInstanceOf(InvalidCustomWordException.class);
     }
 
     @Test
     void rejectsGuessCountAboveMaximum() {
-        assertThatThrownBy(() -> service.createPuzzle("crane", 9, 24))
+        assertThatThrownBy(() -> service.createPuzzle("crane", 9, 24, false))
                 .isInstanceOf(InvalidCustomWordException.class);
     }
 
     @Test
     void rejectsExpiryBelowMinimum() {
-        assertThatThrownBy(() -> service.createPuzzle("crane", 5, 0))
+        assertThatThrownBy(() -> service.createPuzzle("crane", 5, 0, false))
                 .isInstanceOf(InvalidCustomWordException.class);
     }
 
     @Test
     void rejectsExpiryAboveMaximum() {
-        assertThatThrownBy(() -> service.createPuzzle("crane", 5, 49))
+        assertThatThrownBy(() -> service.createPuzzle("crane", 5, 49, false))
                 .isInstanceOf(InvalidCustomWordException.class);
     }
 
     @Test
     void rejectsADenylistedWordRegardlessOfCasing() {
-        assertThatThrownBy(() -> service.createPuzzle("KILL", 5, 24))
+        assertThatThrownBy(() -> service.createPuzzle("KILL", 5, 24, false))
                 .isInstanceOf(InvalidCustomWordException.class);
     }
 
@@ -103,7 +112,7 @@ class CustomPuzzleServiceTest {
     void rejectsAWordTheDictionaryDoesNotRecognize() {
         when(dictionaryService.lookup(anyString())).thenReturn(WordDefinitionResponse.notFound("zzqxx"));
 
-        assertThatThrownBy(() -> service.createPuzzle("zzqxx", 5, 24))
+        assertThatThrownBy(() -> service.createPuzzle("zzqxx", 5, 24, false))
                 .isInstanceOf(InvalidCustomWordException.class);
     }
 

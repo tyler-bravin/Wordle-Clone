@@ -54,6 +54,26 @@
   color: var(--danger);
 }
 
+.terminal-header__hardmode-toggle {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 2px 0;
+  white-space: nowrap;
+  margin-right: 12px;
+}
+
+.terminal-header__hardmode-toggle:hover {
+  color: var(--text-dim);
+}
+
+.terminal-header__hardmode-toggle[aria-pressed="true"] {
+  color: var(--amber);
+}
+
 .terminal-header__body {
   padding: 20px 20px 18px;
 }

@@ -1,5 +1,6 @@
 package dev.tylerbravin.wordle.controller;
 
+import dev.tylerbravin.wordle.dto.DailyStartRequest;
 import dev.tylerbravin.wordle.dto.EndlessSessionResponse;
 import dev.tylerbravin.wordle.dto.EndlessStartRequest;
 import dev.tylerbravin.wordle.dto.GameStateResponse;
@@ -34,11 +35,16 @@ public class GameController {
     /**
      * Starts a fresh game for today's shared Daily word.
      *
+     * @param request optional body carrying whether to enforce Hard Mode - defaults to
+     *                {@code false} if the body is omitted entirely
      * @return the new game's state, with a {@code gameId} to track it by
      */
     @PostMapping("/daily/start")
-    public ResponseEntity<GameStateResponse> startDailyGame() {
-        return ResponseEntity.ok(gameService.startDailyGame());
+    public ResponseEntity<GameStateResponse> startDailyGame(
+            @RequestBody(required = false) DailyStartRequest request
+    ) {
+        boolean hardMode = request != null && request.hardMode();
+        return ResponseEntity.ok(gameService.startDailyGame(hardMode));
     }
 
     /**
@@ -46,7 +52,9 @@ public class GameController {
      * previous response to keep drawing from the same no-repeat shuffle bag;
      * omit it to start a brand new one.
      *
-     * @param request optional body carrying a previously issued {@code playerId}
+     * @param request optional body carrying a previously issued {@code playerId} and
+     *                whether to enforce Hard Mode - both default to "none"/{@code false}
+     *                if the body is omitted entirely
      * @return the new round's state plus the {@code playerId} and bag progress to persist
      */
     @PostMapping("/endless/start")
@@ -54,7 +62,8 @@ public class GameController {
             @RequestBody(required = false) EndlessStartRequest request
     ) {
         String playerId = request == null ? null : request.playerId();
-        return ResponseEntity.ok(gameService.startEndlessGame(playerId));
+        boolean hardMode = request != null && request.hardMode();
+        return ResponseEntity.ok(gameService.startEndlessGame(playerId, hardMode));
     }
 
     /**
