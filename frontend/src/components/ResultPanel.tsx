@@ -9,6 +9,7 @@ interface ResultPanelProps {
   status: Extract<GameStatus, "WON" | "LOST">;
   answer: string;
   guessCount: number;
+  maxGuesses: number;
   stats: Stats;
   nextDailyResetAt: string | null;
   onPlayAgain: () => void;
@@ -19,6 +20,7 @@ export function ResultPanel({
   status,
   answer,
   guessCount,
+  maxGuesses,
   stats,
   nextDailyResetAt,
   onPlayAgain,
@@ -31,7 +33,7 @@ export function ResultPanel({
       <div className="result-panel__line">
         <span className="result-panel__prompt">$</span>{" "}
         {status === "WON" ? (
-          <span className="result-panel__won">solved in {guessCount}/6</span>
+          <span className="result-panel__won">solved in {guessCount}/{maxGuesses}</span>
         ) : (
           <span className="result-panel__lost">out of guesses</span>
         )}
@@ -90,6 +92,10 @@ export function ResultPanel({
       {mode === "ENDLESS" ? (
         <button className="result-panel__action" onClick={onPlayAgain}>
           ./wordle --next
+        </button>
+      ) : mode === "CUSTOM" ? (
+        <button className="result-panel__action" onClick={onPlayAgain}>
+          ./wordle --retry
         </button>
       ) : (
         <p className="result-panel__next">

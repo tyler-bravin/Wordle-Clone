@@ -2,7 +2,7 @@ export type LetterResult = "CORRECT" | "PRESENT" | "ABSENT";
 
 export type GameStatus = "IN_PROGRESS" | "WON" | "LOST";
 
-export type GameMode = "DAILY" | "ENDLESS";
+export type GameMode = "DAILY" | "ENDLESS" | "CUSTOM";
 
 export interface GuessResult {
   guess: string;
@@ -21,6 +21,10 @@ export interface GameState {
   answer: string | null;
   /** ISO instant of the next UTC-midnight Daily reset. Null for ENDLESS games. */
   nextDailyResetAt: string | null;
+}
+
+export interface CreateCustomPuzzleResponse {
+  puzzleId: string;
 }
 
 export interface EndlessSessionState {

@@ -131,6 +131,10 @@
   border-bottom-color: var(--amber);
 }
 
+.mode-tab--static {
+  cursor: default;
+}
+
 .terminal-header__status {
   font-family: var(--font-mono);
   font-size: 0.76rem;

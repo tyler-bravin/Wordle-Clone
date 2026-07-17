@@ -11,6 +11,7 @@ import { ConnectionError } from "./ConnectionError";
 const STATS_KEYS: Record<GameMode, string> = {
   DAILY: "wordle-stats-daily-v1",
   ENDLESS: "wordle-stats-endless-v1",
+  CUSTOM: "wordle-stats-custom-v1",
 };
 
 // Matches the backend's fixed wordle.word-length/max-guesses config. Used only
@@ -25,9 +26,13 @@ const DEFAULT_MAX_GUESSES = 6;
 interface GameProps {
   mode: GameMode;
   onModeChange: (mode: GameMode) => void;
+  /** Required when `mode === "CUSTOM"` - the id from the shared `/custom/{puzzleId}` link. */
+  puzzleId?: string;
+  /** Omit to hide the "[+ custom]" tab - e.g. while already viewing a Custom puzzle. */
+  onCreateCustom?: () => void;
 }
 
-export function Game({ mode, onModeChange }: GameProps) {
+export function Game({ mode, onModeChange, puzzleId, onCreateCustom }: GameProps) {
   const { stats, recordResult } = useStats(STATS_KEYS[mode]);
   const {
     game,
@@ -46,11 +51,15 @@ export function Game({ mode, onModeChange }: GameProps) {
     submitGuess,
     startNewGame,
     retryBootstrap,
-  } = useGame(mode, (finished) => {
-    if (finished.status === "WON" || finished.status === "LOST") {
-      recordResult(finished.status, finished.guesses.length, finished.gameId);
-    }
-  });
+  } = useGame(
+    mode,
+    (finished) => {
+      if (finished.status === "WON" || finished.status === "LOST") {
+        recordResult(finished.status, finished.guesses.length, finished.gameId);
+      }
+    },
+    puzzleId
+  );
 
   const statusLine = bootstrapError
     ? "connection error"
@@ -58,15 +67,17 @@ export function Game({ mode, onModeChange }: GameProps) {
     ? "loading..."
     : mode === "DAILY"
       ? `day #${game.roundNumber} · ${game.guesses.length}/${game.maxGuesses} guesses`
-      : endlessBag
-        ? `word ${endlessBag.totalWordsInBag - endlessBag.wordsRemainingInBag}/${endlessBag.totalWordsInBag} this cycle`
-        : `round #${game.roundNumber}`;
+      : mode === "CUSTOM"
+        ? `${game.guesses.length}/${game.maxGuesses} guesses`
+        : endlessBag
+          ? `word ${endlessBag.totalWordsInBag - endlessBag.wordsRemainingInBag}/${endlessBag.totalWordsInBag} this cycle`
+          : `round #${game.roundNumber}`;
 
   const finished = game && (game.status === "WON" || game.status === "LOST");
 
   return (
     <div className="terminal">
-      <Header mode={mode} onModeChange={onModeChange} statusLine={statusLine} />
+      <Header mode={mode} onModeChange={onModeChange} statusLine={statusLine} onCreateCustom={onCreateCustom} />
 
       <div className="game__board-area">
         <Toast message={error} />
@@ -91,6 +102,7 @@ export function Game({ mode, onModeChange }: GameProps) {
           status={game.status as "WON" | "LOST"}
           answer={game.answer}
           guessCount={game.guesses.length}
+          maxGuesses={game.maxGuesses}
           stats={stats}
           nextDailyResetAt={game.nextDailyResetAt}
           onPlayAgain={startNewGame}

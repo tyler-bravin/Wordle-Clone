@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiRequestError, gameApi } from "../api/client";
+import { ApiRequestError, customApi, gameApi } from "../api/client";
 import { sound } from "../lib/sound";
 import type { GameMode, GameState } from "../types/game";
 
 const DAILY_GAME_ID_KEY = "wordle-daily-game-id-v1";
 const ENDLESS_GAME_ID_KEY = "wordle-endless-game-id-v1";
 const ENDLESS_PLAYER_ID_KEY = "wordle-endless-player-id-v1";
+/** Scoped per puzzle, since one browser might visit several different custom links over time. */
+const customGameIdKey = (puzzleId: string) => `wordle-custom-game-id-v1-${puzzleId}`;
 
 interface EndlessBagInfo {
   wordsRemainingInBag: number;
@@ -56,8 +58,10 @@ const TILE_FLIP_STAGGER_MS = 240;
  * Daily resumes by gameId alone (there's only ever one "current" daily game).
  * Endless additionally persists a playerId so "Play again" and page reloads
  * keep drawing from the same no-repeat shuffle bag rather than starting a new one.
+ * Custom requires a `puzzleId` (the id from the shared `/custom/{puzzleId}`
+ * link) and resumes/starts an attempt scoped to that specific puzzle.
  */
-export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
+export function useGame(mode: GameMode, onFinished: (game: GameState) => void, puzzleId?: string) {
   const [game, setGame] = useState<GameState | null>(null);
   const [endlessBag, setEndlessBag] = useState<EndlessBagInfo | null>(null);
   const [letters, setLetters] = useState<string[]>([]);
@@ -70,7 +74,8 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
   const onFinishedRef = useRef(onFinished);
   onFinishedRef.current = onFinished;
 
-  const gameIdKey = mode === "DAILY" ? DAILY_GAME_ID_KEY : ENDLESS_GAME_ID_KEY;
+  const gameIdKey =
+    mode === "DAILY" ? DAILY_GAME_ID_KEY : mode === "CUSTOM" ? customGameIdKey(puzzleId ?? "unknown") : ENDLESS_GAME_ID_KEY;
 
   const showError = useCallback((message: string) => {
     setError(message);
@@ -109,13 +114,24 @@ export function useGame(mode: GameMode, onFinished: (game: GameState) => void) {
     resetInput(session.game.wordLength);
   }, [resetInput]);
 
+  const startFreshCustom = useCallback(async () => {
+    if (!puzzleId) return;
+    const fresh = await customApi.start(puzzleId);
+    localStorage.setItem(customGameIdKey(puzzleId), fresh.gameId);
+    setGame(fresh);
+    setEndlessBag(null);
+    resetInput(fresh.wordLength);
+  }, [puzzleId, resetInput]);
+
   const startFresh = useCallback(async () => {
     if (mode === "DAILY") {
       await startFreshDaily();
+    } else if (mode === "CUSTOM") {
+      await startFreshCustom();
     } else {
       await startFreshEndless();
     }
-  }, [mode, startFreshDaily, startFreshEndless]);
+  }, [mode, startFreshDaily, startFreshEndless, startFreshCustom]);
 
   /** Resumes the saved game if there is one and it still exists server-side, otherwise starts fresh. */
   const resumeOrStart = useCallback(async () => {
