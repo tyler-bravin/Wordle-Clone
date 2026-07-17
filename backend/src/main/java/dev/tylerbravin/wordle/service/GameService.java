@@ -7,6 +7,7 @@ import dev.tylerbravin.wordle.dto.GameStateResponse;
 import dev.tylerbravin.wordle.dto.GameStatus;
 import dev.tylerbravin.wordle.dto.GuessResult;
 import dev.tylerbravin.wordle.dto.LetterResult;
+import dev.tylerbravin.wordle.exception.CustomPuzzleNotFoundException;
 import dev.tylerbravin.wordle.exception.GameAlreadyFinishedException;
 import dev.tylerbravin.wordle.exception.GameNotFoundException;
 import dev.tylerbravin.wordle.exception.WordNotInDictionaryException;
@@ -34,6 +35,7 @@ public class GameService {
     private final GameProperties properties;
     private final Clock clock;
     private final GameSessionStore sessionStore;
+    private final CustomPuzzleStore customPuzzleStore;
 
     public GameService(
             WordService wordService,
@@ -41,7 +43,8 @@ public class GameService {
             GuessEvaluator guessEvaluator,
             GameProperties properties,
             Clock clock,
-            GameSessionStore sessionStore
+            GameSessionStore sessionStore,
+            CustomPuzzleStore customPuzzleStore
     ) {
         this.wordService = wordService;
         this.endlessBagService = endlessBagService;
@@ -49,6 +52,7 @@ public class GameService {
         this.properties = properties;
         this.clock = clock;
         this.sessionStore = sessionStore;
+        this.customPuzzleStore = customPuzzleStore;
     }
 
     /**
@@ -101,6 +105,26 @@ public class GameService {
     }
 
     /**
+     * Starts a fresh attempt at an existing Custom puzzle. Unlike Daily/Endless,
+     * many independent sessions can exist for the same puzzle - anyone with the
+     * link gets their own attempt, none of which affect each other.
+     *
+     * @param puzzleId id of a puzzle previously created via {@link CustomPuzzleService#createPuzzle}
+     * @return state for the newly created session
+     * @throws CustomPuzzleNotFoundException if no puzzle exists for this id (e.g. it expired)
+     */
+    public GameStateResponse startCustomGame(UUID puzzleId) {
+        CustomPuzzle puzzle = customPuzzleStore.find(puzzleId)
+                .orElseThrow(() -> new CustomPuzzleNotFoundException(puzzleId));
+
+        GameSession session = GameSession.start(
+                UUID.randomUUID(), GameMode.CUSTOM, 0, puzzle.word(), puzzle.maxGuesses());
+        sessionStore.save(session);
+
+        return toResponse(session);
+    }
+
+    /**
      * Fetches the current state of an existing game, e.g. after a page reload.
      * <p>
      * For DAILY games specifically, a session created on an earlier calendar day
@@ -133,7 +157,8 @@ public class GameService {
      * @return updated state, including the answer if this guess won or lost the game
      * @throws GameNotFoundException if no session exists for this id
      * @throws GameAlreadyFinishedException if the game already ended
-     * @throws WordNotInDictionaryException if the guess isn't a recognized word
+     * @throws WordNotInDictionaryException if the guess isn't a recognized word (DAILY/ENDLESS only -
+     *         CUSTOM guesses aren't dictionary-checked, see {@link CustomPuzzleService}'s Javadoc)
      */
     public GameStateResponse submitGuess(UUID gameId, String rawGuess) {
         GameSession session = requireSession(gameId);
@@ -143,7 +168,7 @@ public class GameService {
         }
 
         String guess = rawGuess.trim().toLowerCase();
-        if (!wordService.isValidGuess(guess)) {
+        if (session.mode() != GameMode.CUSTOM && !wordService.isValidGuess(guess)) {
             throw new WordNotInDictionaryException(guess);
         }
 
@@ -191,7 +216,7 @@ public class GameService {
                 session.id(),
                 session.mode(),
                 session.roundNumber(),
-                properties.wordLength(),
+                session.answer().length(),
                 session.maxGuesses(),
                 session.guesses(),
                 session.status(),
