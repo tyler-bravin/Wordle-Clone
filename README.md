@@ -22,10 +22,11 @@ A Wordle clone with a **Java/Spring Boot** backend and a **React/TypeScript** fr
 ### ✨ Key Features
 * **Daily Mode**: One shared word per calendar day, the same for every player — derived server-side from a fixed-seed shuffle of the answer list, so it's stable across restarts but not just alphabetical. Once finished, a live countdown to the next UTC-midnight reset replaces the usual "~24h" guess.
 * **Endless Mode**: Unlimited rounds via a per-player shuffle bag — every answer word gets dealt exactly once before the bag reshuffles, so nothing repeats until you've genuinely seen the whole pool.
+* **Custom Puzzles**: Pick any real English word (3-8 letters), a guess count (3-8), and an expiry (1-48h — links aren't permanent), and get a shareable `/custom/{id}` link anyone can play — the word is validated against the same dictionary API used for definitions, checked against a moderation denylist, and never dictionary-gated on the *guessing* side, so any string of the right length is a fair guess.
 * **Server-Authoritative Guessing**: The answer is never sent to the client until a game ends — every guess is scored on the backend, so it can't be read out of the network tab mid-game.
 * **Word Definition Lookup**: Once a game ends, the result panel fetches a definition for the answer from a free external dictionary API (falling back to a second source for words the first one's dataset tends to miss), rendered as another terminal-log-style block.
 * **Persistent Stats**: Win rate, streak, and guess distribution tracked per mode in `localStorage`, styled as a `cat stats.log` readout.
-* **Terminal-Styled UI**: Titlebar, blinking prompt, and `[daily]` / `[endless]` mode tabs — the same shell-session framing device used across my other projects.
+* **Terminal-Styled UI**: Titlebar, blinking prompt, and `[daily]` / `[endless]` / `[+ custom]` mode tabs — the same shell-session framing device used across my other projects.
 * **Skip-Letter Input**: Press Space (or the right arrow) to leave a gap for a letter you're unsure of and keep typing, then use the left/right arrows or click any tile in the row to jump back and fill it in - à la [lessgames.com's Wordless](https://lessgames.com/wordless).
 * **Fully Fluid Layout**: Tile and key sizing scale continuously with viewport width (`clamp()`), rather than jumping at a single breakpoint, so it holds up from small phones to ultrawide monitors.
 * **Subtle Sound Effects**: Synthesized on the fly with the Web Audio API rather than sample files - soft key ticks, per-tile reveal tones pitched by result, and a short win/lose sting timed to land after the flip cascade finishes. A `[sound]`/`[muted]` toggle in the titlebar turns it all off, persisted in `localStorage`.
@@ -51,7 +52,9 @@ The backend never sends the answer word to the client until a game ends, so it c
 
 **Endless mode** uses a per-player shuffle bag: a randomly-ordered queue of every answer word. Each round pops the next word off the queue; once it's empty, a fresh shuffle refills it — guaranteeing the full answer pool gets seen before anything repeats, without ever showing the same order twice.
 
-Both modes share the same guess-scoring logic (`GuessEvaluator`), which handles duplicate letters the way real Wordle does — see `GuessEvaluatorTest` for the specific edge cases.
+**Custom mode** is different from the other two in one important way: Daily/Endless only accept guesses that are in the curated `allowed.txt` dictionary (~14.8k 5-letter words), but a Custom puzzle's word can be any length from 3-8, so guesses aren't dictionary-checked at all — only the puzzle's *answer* is validated (once, at creation time) by looking it up via the same dictionary API used for the post-game definition. A short hand-curated denylist blocks obviously offensive words at creation too. See `CustomPuzzleService`'s Javadoc for the full reasoning.
+
+All three modes share the same guess-scoring logic (`GuessEvaluator`), which handles duplicate letters the way real Wordle does — see `GuessEvaluatorTest` for the specific edge cases.
 
 ---
 
@@ -119,6 +122,7 @@ This is a portfolio project, not a production service, so a few corners were cut
 
 * **No accounts**: Endless mode's no-repeat guarantee is scoped to a `playerId` in `localStorage`, not a real user account. Game state lives in Redis keyed by `gameId`/`playerId` with a TTL (`WORDLE_SESSION_TTL` / `WORDLE_BAG_TTL`), rather than anything tied to a real user, since there's no login to tie it to.
 * **Third-party dictionary dependency**: The definition lookup depends on two free external APIs (a Wiktionary-backed fallback covers words the primary source's dataset tends to skip, like common function words) with no SLA between them. It's deliberately isolated from actual gameplay, so this only affects that one bonus feature — see `DictionaryService`'s Javadoc.
+* **No abuse protection on Custom puzzle creation**: no rate-limiting, no CAPTCHA — anyone can mint `/custom/{id}` links as fast as they like. The denylist (`backend/src/main/resources/words/denylist.txt`) is a short, hand-curated baseline, not a claim of comprehensive moderation.
 
 ---
 
