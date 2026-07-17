@@ -1,8 +1,9 @@
 # Word lists
 
-Two files, both loaded into memory at startup by `WordService` — no
-database, no external API. See the root `README.md` for why that's a
-deliberate choice rather than a shortcut.
+Three files. `answers.txt`/`allowed.txt` are loaded into memory at startup
+by `WordService`; `denylist.txt` is loaded by `CustomPuzzleService`. No
+database, no external API for any of them. See the root `README.md` for why
+that's a deliberate choice rather than a shortcut.
 
 ## `answers.txt` — 2,315 words
 
@@ -32,6 +33,18 @@ answer, same as real Wordle).
 **Source:** [`tabatkins/wordle-list`](https://github.com/tabatkins/wordle-list)
 (MIT licensed), also extracted directly from Wordle's client-side source code.
 
+## `denylist.txt` — hand-curated
+
+Checked once, at Custom puzzle *creation* time only (never against guesses)
+by `CustomPuzzleService` - a word matching this list (exact, case-insensitive)
+is rejected before a shareable link is ever generated.
+
+**Source:** hand-curated, not pulled from any third-party list. Deliberately
+short and limited to the most unambiguous slurs/profanity, rather than an
+attempt at an exhaustive filter - see the root `README.md`'s "Known
+Simplifications" for why a best-effort baseline is the honest scope here,
+not a claim of comprehensive moderation.
+
 ## How they were combined
 
 Both files were fetched, lowercased, deduplicated, and filtered to exactly
@@ -43,4 +56,6 @@ startup and refuses to boot if it doesn't hold - see
 
 ## License
 
-Both source repos are MIT licensed, which permits this kind of reuse.
+`answers.txt`/`allowed.txt`'s source repos are MIT licensed, which permits
+this kind of reuse. `denylist.txt` is original content (see above), covered
+by this repo's own MIT license like the rest of the codebase.

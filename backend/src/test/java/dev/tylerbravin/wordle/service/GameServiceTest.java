@@ -4,7 +4,9 @@ import dev.tylerbravin.wordle.config.GameProperties;
 import dev.tylerbravin.wordle.dto.EndlessSessionResponse;
 import dev.tylerbravin.wordle.dto.GameMode;
 import dev.tylerbravin.wordle.dto.GameStateResponse;
+import dev.tylerbravin.wordle.exception.CustomPuzzleNotFoundException;
 import dev.tylerbravin.wordle.exception.GameNotFoundException;
+import dev.tylerbravin.wordle.exception.WordNotInDictionaryException;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -13,6 +15,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,6 +27,7 @@ class GameServiceTest {
             Duration.ofDays(2), Duration.ofDays(30));
     private final WordService wordService = new WordService(properties);
     private final EndlessBagService endlessBagService = new EndlessBagService(wordService, new InMemoryEndlessBagStore());
+    private final InMemoryCustomPuzzleStore customPuzzleStore = new InMemoryCustomPuzzleStore();
 
     // Anchored to a fixed instant rather than the real system clock, so these
     // tests are reproducible regardless of when they actually run - and, for
@@ -31,7 +35,8 @@ class GameServiceTest {
     // just advancing this clock instead of needing to wait for real time to pass.
     private final MutableClock clock = new MutableClock(Instant.parse("2026-06-15T12:00:00Z"), ZoneOffset.UTC);
     private final GameService gameService = new GameService(
-            wordService, endlessBagService, new GuessEvaluator(), properties, clock, new InMemoryGameSessionStore());
+            wordService, endlessBagService, new GuessEvaluator(), properties, clock,
+            new InMemoryGameSessionStore(), customPuzzleStore);
 
     @Test
     void dailyGameReportsAFutureUtcMidnightAsTheNextReset() {
@@ -110,6 +115,57 @@ class GameServiceTest {
 
         GameStateResponse resumed = gameService.getGame(started.game().gameId());
         assertThat(resumed.gameId()).isEqualTo(started.game().gameId());
+    }
+
+    @Test
+    void startCustomGameUsesThePuzzlesWordAndMaxGuesses() {
+        UUID puzzleId = UUID.randomUUID();
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 4, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
+
+        GameStateResponse response = gameService.startCustomGame(puzzleId);
+
+        assertThat(response.mode()).isEqualTo(GameMode.CUSTOM);
+        assertThat(response.wordLength()).isEqualTo("quartz".length());
+        assertThat(response.maxGuesses()).isEqualTo(4);
+    }
+
+    @Test
+    void startingACustomGameForAnUnknownPuzzleThrows() {
+        assertThatThrownBy(() -> gameService.startCustomGame(UUID.randomUUID()))
+                .isInstanceOf(CustomPuzzleNotFoundException.class);
+    }
+
+    @Test
+    void submitGuessAcceptsNonDictionaryWordsForCustomGames() {
+        UUID puzzleId = UUID.randomUUID();
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
+        GameStateResponse started = gameService.startCustomGame(puzzleId);
+
+        // "bbbbbb" isn't a dictionary word at all - Custom-mode guesses aren't
+        // checked against one, unlike Daily/Endless (see submitGuess's Javadoc).
+        GameStateResponse response = gameService.submitGuess(started.gameId(), "bbbbbb");
+
+        assertThat(response.guesses()).hasSize(1);
+    }
+
+    @Test
+    void submittingTheCorrectGuessWinsACustomGameOfAnyLength() {
+        UUID puzzleId = UUID.randomUUID();
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "sky", 3, clock.instant(), clock.instant().plus(Duration.ofHours(24))));
+        GameStateResponse started = gameService.startCustomGame(puzzleId);
+
+        GameStateResponse response = gameService.submitGuess(started.gameId(), "sky");
+
+        assertThat(response.status().name()).isEqualTo("WON");
+        assertThat(response.answer()).isEqualTo("sky");
+    }
+
+    @Test
+    void submitGuessStillRejectsNonDictionaryWordsForDailyGames() {
+        GameStateResponse started = gameService.startDailyGame();
+
+        assertThatThrownBy(() -> gameService.submitGuess(started.gameId(), "zzzzz"))
+                .isInstanceOf(WordNotInDictionaryException.class);
     }
 
     /** A Clock whose current instant can be advanced mid-test, to simulate day boundaries passing. */

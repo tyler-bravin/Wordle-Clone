@@ -1,4 +1,4 @@
-import type { ApiError, EndlessSessionState, GameState, WordDefinition } from "../types/game";
+import type { ApiError, CreateCustomPuzzleResponse, EndlessSessionState, GameState, WordDefinition } from "../types/game";
 
 // Falls back to the local backend for dev. In production this is
 // overridden by a real build-time environment variable, which always
@@ -56,4 +56,15 @@ export const gameApi = {
 
 export const dictionaryApi = {
   getDefinition: (word: string) => request<WordDefinition>(`/api/dictionary/${word}`),
+};
+
+export const customApi = {
+  create: (word: string, maxGuesses: number, expiresInHours: number) =>
+    request<CreateCustomPuzzleResponse>("/api/custom", {
+      method: "POST",
+      body: JSON.stringify({ word, maxGuesses, expiresInHours }),
+    }),
+
+  start: (puzzleId: string) =>
+    request<GameState>(`/api/custom/${puzzleId}/start`, { method: "POST" }),
 };

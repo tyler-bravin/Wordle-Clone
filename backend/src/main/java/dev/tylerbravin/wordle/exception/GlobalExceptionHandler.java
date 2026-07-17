@@ -38,6 +38,16 @@ public class GlobalExceptionHandler {
         return errorResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
+    @ExceptionHandler(CustomPuzzleNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleCustomPuzzleNotFound(CustomPuzzleNotFoundException ex) {
+        return errorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidCustomWordException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidCustomWord(InvalidCustomWordException ex) {
+        return errorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()

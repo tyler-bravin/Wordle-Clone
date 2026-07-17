@@ -7,9 +7,14 @@ interface HeaderProps {
   mode: GameMode;
   onModeChange: (mode: GameMode) => void;
   statusLine: string;
+  /** Omit to hide the "[+ custom]" tab - e.g. while already viewing a Custom puzzle. */
+  onCreateCustom?: () => void;
+  /** True while the Custom-puzzle creation form is showing - overrides the tabs
+   *  regardless of `mode`, since creating isn't itself a playable GameMode. */
+  creating?: boolean;
 }
 
-export function Header({ mode, onModeChange, statusLine }: HeaderProps) {
+export function Header({ mode, onModeChange, statusLine, onCreateCustom, creating }: HeaderProps) {
   const [muted, setMuted] = useState(() => sound.isMuted());
 
   return (
@@ -37,27 +42,52 @@ export function Header({ mode, onModeChange, statusLine }: HeaderProps) {
           <span className="prompt__sep">:</span>
           <span className="prompt__path">~</span>
           <span className="prompt__dollar">$</span>{" "}
-          <span className="prompt__cmd">./wordle --mode={mode.toLowerCase()}</span>
+          <span className="prompt__cmd">
+            {creating ? "./wordle --create-custom" : `./wordle --mode=${mode.toLowerCase()}`}
+          </span>
           <span className="prompt__cursor" aria-hidden="true" />
         </div>
 
         <div className="mode-tabs" role="tablist" aria-label="Game mode">
-          <button
-            role="tab"
-            aria-selected={mode === "DAILY"}
-            className={`mode-tab ${mode === "DAILY" ? "mode-tab--active" : ""}`}
-            onClick={() => onModeChange("DAILY")}
-          >
-            [daily]
-          </button>
-          <button
-            role="tab"
-            aria-selected={mode === "ENDLESS"}
-            className={`mode-tab ${mode === "ENDLESS" ? "mode-tab--active" : ""}`}
-            onClick={() => onModeChange("ENDLESS")}
-          >
-            [endless]
-          </button>
+          {creating ? (
+            <>
+              <span className="mode-tab mode-tab--active mode-tab--static">[create custom]</span>
+              <button role="tab" className="mode-tab" onClick={() => onModeChange("DAILY")}>
+                [back]
+              </button>
+            </>
+          ) : mode === "CUSTOM" ? (
+            <>
+              <span className="mode-tab mode-tab--active mode-tab--static">[custom puzzle]</span>
+              <button role="tab" className="mode-tab" onClick={() => onModeChange("DAILY")}>
+                [back]
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                role="tab"
+                aria-selected={mode === "DAILY"}
+                className={`mode-tab ${mode === "DAILY" ? "mode-tab--active" : ""}`}
+                onClick={() => onModeChange("DAILY")}
+              >
+                [daily]
+              </button>
+              <button
+                role="tab"
+                aria-selected={mode === "ENDLESS"}
+                className={`mode-tab ${mode === "ENDLESS" ? "mode-tab--active" : ""}`}
+                onClick={() => onModeChange("ENDLESS")}
+              >
+                [endless]
+              </button>
+              {onCreateCustom && (
+                <button role="tab" className="mode-tab" onClick={onCreateCustom}>
+                  [+ custom]
+                </button>
+              )}
+            </>
+          )}
         </div>
 
         <p className="terminal-header__status">{statusLine}</p>
