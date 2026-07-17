@@ -30,9 +30,13 @@ interface GameProps {
   puzzleId?: string;
   /** Omit to hide the "[+ custom]" tab - e.g. while already viewing a Custom puzzle. */
   onCreateCustom?: () => void;
+  /** Preference applied to the next fresh Daily/Endless start - ignored for CUSTOM,
+   *  whose hard-mode setting comes from the puzzle itself. */
+  hardMode: boolean;
+  onToggleHardMode: () => void;
 }
 
-export function Game({ mode, onModeChange, puzzleId, onCreateCustom }: GameProps) {
+export function Game({ mode, onModeChange, puzzleId, onCreateCustom, hardMode, onToggleHardMode }: GameProps) {
   const { stats, recordResult } = useStats(STATS_KEYS[mode]);
   const {
     game,
@@ -58,26 +62,40 @@ export function Game({ mode, onModeChange, puzzleId, onCreateCustom }: GameProps
         recordResult(finished.status, finished.guesses.length, finished.gameId);
       }
     },
-    puzzleId
+    puzzleId,
+    hardMode
   );
+
+  // Reflects the *active session's* actual setting, not the header toggle's
+  // current position - those can differ if the toggle changed after this
+  // game started (it only takes effect on the next fresh game), so this is
+  // the only reliable "is hard mode actually on right now" indicator.
+  const hardModeSuffix = game?.hardMode ? " · hard mode" : "";
 
   const statusLine = bootstrapError
     ? "connection error"
     : loading || !game
     ? "loading..."
     : mode === "DAILY"
-      ? `day #${game.roundNumber} · ${game.guesses.length}/${game.maxGuesses} guesses`
+      ? `day #${game.roundNumber} · ${game.guesses.length}/${game.maxGuesses} guesses${hardModeSuffix}`
       : mode === "CUSTOM"
-        ? `${game.guesses.length}/${game.maxGuesses} guesses`
+        ? `${game.guesses.length}/${game.maxGuesses} guesses${hardModeSuffix}`
         : endlessBag
-          ? `word ${endlessBag.totalWordsInBag - endlessBag.wordsRemainingInBag}/${endlessBag.totalWordsInBag} this cycle`
-          : `round #${game.roundNumber}`;
+          ? `word ${endlessBag.totalWordsInBag - endlessBag.wordsRemainingInBag}/${endlessBag.totalWordsInBag} this cycle${hardModeSuffix}`
+          : `round #${game.roundNumber}${hardModeSuffix}`;
 
   const finished = game && (game.status === "WON" || game.status === "LOST");
 
   return (
     <div className="terminal">
-      <Header mode={mode} onModeChange={onModeChange} statusLine={statusLine} onCreateCustom={onCreateCustom} />
+      <Header
+        mode={mode}
+        onModeChange={onModeChange}
+        statusLine={statusLine}
+        onCreateCustom={onCreateCustom}
+        hardMode={mode === "CUSTOM" ? undefined : hardMode}
+        onToggleHardMode={mode === "CUSTOM" ? undefined : onToggleHardMode}
+      />
 
       <div className="game__board-area">
         <Toast message={error} />

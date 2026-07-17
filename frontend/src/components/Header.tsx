@@ -12,9 +12,15 @@ interface HeaderProps {
   /** True while the Custom-puzzle creation form is showing - overrides the tabs
    *  regardless of `mode`, since creating isn't itself a playable GameMode. */
   creating?: boolean;
+  /** Omit both (along with the toggle they drive) while viewing a Custom puzzle -
+   *  hard mode there is the creator's choice, baked into the puzzle, not a toggle
+   *  the guesser controls. Reflects the *preference* for the next fresh game, not
+   *  necessarily the active session's setting - see `Game.tsx`'s status line. */
+  hardMode?: boolean;
+  onToggleHardMode?: () => void;
 }
 
-export function Header({ mode, onModeChange, statusLine, onCreateCustom, creating }: HeaderProps) {
+export function Header({ mode, onModeChange, statusLine, onCreateCustom, creating, hardMode, onToggleHardMode }: HeaderProps) {
   const [muted, setMuted] = useState(() => sound.isMuted());
 
   return (
@@ -26,6 +32,16 @@ export function Header({ mode, onModeChange, statusLine, onCreateCustom, creatin
           <span className="dot dot--amber" />
         </div>
         <span className="terminal-header__title">wordle — zsh — 80x24</span>
+        {onToggleHardMode && (
+          <button
+            className="terminal-header__hardmode-toggle"
+            onClick={onToggleHardMode}
+            aria-label={hardMode ? "Turn off Hard Mode for future games" : "Turn on Hard Mode for future games"}
+            aria-pressed={hardMode}
+          >
+            [{hardMode ? "hard" : "normal"}]
+          </button>
+        )}
         <button
           className="terminal-header__sound-toggle"
           onClick={() => setMuted(sound.toggleMuted())}

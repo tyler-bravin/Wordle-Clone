@@ -7,6 +7,8 @@ import "./App.css";
 
 type View = { type: "game"; mode: GameMode; puzzleId?: string } | { type: "create" };
 
+const HARD_MODE_KEY = "wordle-hard-mode-v1";
+
 /** No router library - a `/custom/{puzzleId}` path is the only route this app has,
  * and nginx already SPA-falls-back any path to index.html (see frontend/nginx.conf). */
 function parseInitialView(): View {
@@ -19,6 +21,18 @@ function parseInitialView(): View {
 
 function App() {
   const [view, setView] = useState<View>(parseInitialView);
+  // A preference, not a live setting - only takes effect on the *next* fresh
+  // Daily/Endless game started (see useGame's Javadoc-style comment). Toggling
+  // it never changes an already-in-progress session.
+  const [hardMode, setHardMode] = useState(() => localStorage.getItem(HARD_MODE_KEY) === "true");
+
+  const toggleHardMode = () => {
+    setHardMode((prev) => {
+      const next = !prev;
+      localStorage.setItem(HARD_MODE_KEY, String(next));
+      return next;
+    });
+  };
 
   const goToMode = (mode: GameMode) => {
     // Only DAILY/ENDLESS are ever navigated to this way - leaving a Custom
@@ -53,6 +67,8 @@ function App() {
           onModeChange={goToMode}
           puzzleId={view.puzzleId}
           onCreateCustom={view.mode === "CUSTOM" ? undefined : () => setView({ type: "create" })}
+          hardMode={hardMode}
+          onToggleHardMode={toggleHardMode}
         />
       )}
       <p className="app__disclaimer">

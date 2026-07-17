@@ -21,6 +21,8 @@ export interface GameState {
   answer: string | null;
   /** ISO instant of the next UTC-midnight Daily reset. Null for ENDLESS games. */
   nextDailyResetAt: string | null;
+  /** Fixed for this session's lifetime - may differ from the player's current toggle preference. */
+  hardMode: boolean;
 }
 
 export interface CreateCustomPuzzleResponse {
