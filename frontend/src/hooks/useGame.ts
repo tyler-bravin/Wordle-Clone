@@ -83,6 +83,16 @@ export function useGame(
   const errorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onFinishedRef = useRef(onFinished);
   onFinishedRef.current = onFinished;
+  // Read via ref, not as a direct useCallback dependency below - hardMode must
+  // only affect the *next* fresh game a player starts, never an in-progress
+  // one. If startFreshDaily/startFreshEndless depended on hardMode directly,
+  // toggling it would change their identity, which cascades through
+  // startFresh -> resumeOrStart -> bootstrap and re-fires the mount-only
+  // bootstrap effect below - silently re-resuming (and resetting the input
+  // of) whatever game is already in progress, which is exactly the "hard
+  // mode turns itself back off" bug this ref exists to prevent.
+  const hardModeRef = useRef(hardMode);
+  hardModeRef.current = hardMode;
 
   const gameIdKey =
     mode === "DAILY" ? DAILY_GAME_ID_KEY : mode === "CUSTOM" ? customGameIdKey(puzzleId ?? "unknown") : ENDLESS_GAME_ID_KEY;
@@ -104,16 +114,16 @@ export function useGame(
   }, []);
 
   const startFreshDaily = useCallback(async () => {
-    const fresh = await gameApi.startDaily(hardMode);
+    const fresh = await gameApi.startDaily(hardModeRef.current);
     localStorage.setItem(DAILY_GAME_ID_KEY, fresh.gameId);
     setGame(fresh);
     setEndlessBag(null);
     resetInput(fresh.wordLength);
-  }, [hardMode, resetInput]);
+  }, [resetInput]);
 
   const startFreshEndless = useCallback(async () => {
     const savedPlayerId = localStorage.getItem(ENDLESS_PLAYER_ID_KEY);
-    const session = await gameApi.startEndless(savedPlayerId, hardMode);
+    const session = await gameApi.startEndless(savedPlayerId, hardModeRef.current);
     localStorage.setItem(ENDLESS_PLAYER_ID_KEY, session.playerId);
     localStorage.setItem(ENDLESS_GAME_ID_KEY, session.game.gameId);
     setGame(session.game);
@@ -122,7 +132,7 @@ export function useGame(
       totalWordsInBag: session.totalWordsInBag,
     });
     resetInput(session.game.wordLength);
-  }, [hardMode, resetInput]);
+  }, [resetInput]);
 
   const startFreshCustom = useCallback(async () => {
     if (!puzzleId) return;
