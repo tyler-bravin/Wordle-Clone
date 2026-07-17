@@ -27,17 +27,19 @@ record GameSession(
         String answer,
         int maxGuesses,
         List<GuessResult> guesses,
-        GameStatus status
+        GameStatus status,
+        /** Fixed for the lifetime of this session - see {@link HardModeValidator}. */
+        boolean hardMode
 ) {
 
-    static GameSession start(UUID id, GameMode mode, long roundNumber, String answer, int maxGuesses) {
-        return new GameSession(id, mode, roundNumber, answer, maxGuesses, List.of(), GameStatus.IN_PROGRESS);
+    static GameSession start(UUID id, GameMode mode, long roundNumber, String answer, int maxGuesses, boolean hardMode) {
+        return new GameSession(id, mode, roundNumber, answer, maxGuesses, List.of(), GameStatus.IN_PROGRESS, hardMode);
     }
 
     GameSession withGuess(GuessResult result, GameStatus newStatus) {
         List<GuessResult> updated = new ArrayList<>(guesses);
         updated.add(result);
-        return new GameSession(id, mode, roundNumber, answer, maxGuesses, List.copyOf(updated), newStatus);
+        return new GameSession(id, mode, roundNumber, answer, maxGuesses, List.copyOf(updated), newStatus, hardMode);
     }
 
     boolean isFinished() {

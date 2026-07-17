@@ -10,6 +10,7 @@ import dev.tylerbravin.wordle.dto.LetterResult;
 import dev.tylerbravin.wordle.exception.CustomPuzzleNotFoundException;
 import dev.tylerbravin.wordle.exception.GameAlreadyFinishedException;
 import dev.tylerbravin.wordle.exception.GameNotFoundException;
+import dev.tylerbravin.wordle.exception.HardModeViolationException;
 import dev.tylerbravin.wordle.exception.WordNotInDictionaryException;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +37,7 @@ public class GameService {
     private final Clock clock;
     private final GameSessionStore sessionStore;
     private final CustomPuzzleStore customPuzzleStore;
+    private final HardModeValidator hardModeValidator;
 
     public GameService(
             WordService wordService,
@@ -44,7 +46,8 @@ public class GameService {
             GameProperties properties,
             Clock clock,
             GameSessionStore sessionStore,
-            CustomPuzzleStore customPuzzleStore
+            CustomPuzzleStore customPuzzleStore,
+            HardModeValidator hardModeValidator
     ) {
         this.wordService = wordService;
         this.endlessBagService = endlessBagService;
@@ -53,6 +56,7 @@ public class GameService {
         this.clock = clock;
         this.sessionStore = sessionStore;
         this.customPuzzleStore = customPuzzleStore;
+        this.hardModeValidator = hardModeValidator;
     }
 
     /**
@@ -65,15 +69,17 @@ public class GameService {
      * moment for the {@code nextDailyResetAt} countdown in {@link #toResponse} to
      * mean anything.
      *
+     * @param hardMode whether this session enforces Hard Mode guess constraints,
+     *                 fixed for its lifetime regardless of later preference changes
      * @return state for the newly created game
      */
-    public GameStateResponse startDailyGame() {
+    public GameStateResponse startDailyGame(boolean hardMode) {
         LocalDate today = LocalDate.now(clock);
         String answer = wordService.wordForDay(today);
         long roundNumber = wordService.dayNumber(today);
 
         GameSession session = GameSession.start(
-                UUID.randomUUID(), GameMode.DAILY, roundNumber, answer, properties.maxGuesses());
+                UUID.randomUUID(), GameMode.DAILY, roundNumber, answer, properties.maxGuesses(), hardMode);
         sessionStore.save(session);
 
         return toResponse(session);
@@ -85,15 +91,17 @@ public class GameService {
      * rounds; otherwise a brand new bag is created.
      *
      * @param rawPlayerId a previously issued playerId, or {@code null}/blank for a new bag
+     * @param hardMode    whether this session enforces Hard Mode guess constraints,
+     *                    fixed for its lifetime regardless of later preference changes
      * @return the new round's game state plus bag bookkeeping the client should persist
      */
-    public EndlessSessionResponse startEndlessGame(String rawPlayerId) {
+    public EndlessSessionResponse startEndlessGame(String rawPlayerId, boolean hardMode) {
         UUID playerId = resolveOrCreatePlayer(rawPlayerId);
 
         EndlessBagService.DealtWord dealt = endlessBagService.nextWord(playerId);
 
         GameSession session = GameSession.start(
-                UUID.randomUUID(), GameMode.ENDLESS, dealt.position(), dealt.word(), properties.maxGuesses());
+                UUID.randomUUID(), GameMode.ENDLESS, dealt.position(), dealt.word(), properties.maxGuesses(), hardMode);
         sessionStore.save(session);
 
         return new EndlessSessionResponse(
@@ -107,7 +115,9 @@ public class GameService {
     /**
      * Starts a fresh attempt at an existing Custom puzzle. Unlike Daily/Endless,
      * many independent sessions can exist for the same puzzle - anyone with the
-     * link gets their own attempt, none of which affect each other.
+     * link gets their own attempt, none of which affect each other. Hard Mode
+     * isn't a per-guesser choice here - it comes from the puzzle itself, since
+     * the creator decides it, not whoever's playing (see {@link CustomPuzzleService}).
      *
      * @param puzzleId id of a puzzle previously created via {@link CustomPuzzleService#createPuzzle}
      * @return state for the newly created session
@@ -118,7 +128,7 @@ public class GameService {
                 .orElseThrow(() -> new CustomPuzzleNotFoundException(puzzleId));
 
         GameSession session = GameSession.start(
-                UUID.randomUUID(), GameMode.CUSTOM, 0, puzzle.word(), puzzle.maxGuesses());
+                UUID.randomUUID(), GameMode.CUSTOM, 0, puzzle.word(), puzzle.maxGuesses(), puzzle.hardMode());
         sessionStore.save(session);
 
         return toResponse(session);
@@ -163,6 +173,9 @@ public class GameService {
      *         always accepted regardless of dictionary membership (a Custom answer is verified via
      *         a live external lookup at creation time, which isn't guaranteed to agree with whatever
      *         static list guesses are checked against - see {@link CustomPuzzleService}'s Javadoc)
+     * @throws HardModeViolationException if {@code session.hardMode()} and the guess breaks a
+     *         constraint established by an earlier guess this game - checked before scoring, so a
+     *         rejected guess is never recorded or counted against {@code maxGuesses}
      */
     public GameStateResponse submitGuess(UUID gameId, String rawGuess) {
         GameSession session = requireSession(gameId);
@@ -178,6 +191,13 @@ public class GameService {
         };
         if (!recognized) {
             throw new WordNotInDictionaryException(guess);
+        }
+
+        if (session.hardMode()) {
+            hardModeValidator.validate(guess, session.guesses())
+                    .ifPresent(violation -> {
+                        throw new HardModeViolationException(violation);
+                    });
         }
 
         var letterResults = guessEvaluator.evaluate(guess, session.answer());
@@ -229,7 +249,8 @@ public class GameService {
                 session.guesses(),
                 session.status(),
                 revealedAnswer,
-                nextDailyResetAt
+                nextDailyResetAt,
+                session.hardMode()
         );
     }
 

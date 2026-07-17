@@ -11,10 +11,12 @@ import jakarta.validation.constraints.NotBlank;
  * @param word           the word to guess, any casing/whitespace
  * @param maxGuesses     guesses allowed for this puzzle
  * @param expiresInHours how long the link stays playable, from now
+ * @param hardMode       whether every session started from this puzzle enforces Hard Mode
  */
 public record CreateCustomPuzzleRequest(
         @NotBlank String word,
         int maxGuesses,
-        int expiresInHours
+        int expiresInHours,
+        boolean hardMode
 ) {
 }

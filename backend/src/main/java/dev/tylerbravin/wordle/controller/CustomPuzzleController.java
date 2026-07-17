@@ -43,7 +43,8 @@ public class CustomPuzzleController {
     public ResponseEntity<CreateCustomPuzzleResponse> createPuzzle(
             @Valid @RequestBody CreateCustomPuzzleRequest request
     ) {
-        UUID puzzleId = customPuzzleService.createPuzzle(request.word(), request.maxGuesses(), request.expiresInHours());
+        UUID puzzleId = customPuzzleService.createPuzzle(
+                request.word(), request.maxGuesses(), request.expiresInHours(), request.hardMode());
         return ResponseEntity.ok(new CreateCustomPuzzleResponse(puzzleId));
     }
 
