@@ -7,7 +7,9 @@ import "./App.css";
 
 type View = { type: "game"; mode: GameMode; puzzleId?: string } | { type: "create" };
 
-const HARD_MODE_KEY = "wordle-hard-mode-v1";
+type TogglableMode = "DAILY" | "ENDLESS";
+
+const hardModeKey = (mode: TogglableMode) => `wordle-hard-mode-${mode.toLowerCase()}-v1`;
 
 /** No router library - a `/custom/{puzzleId}` path is the only route this app has,
  * and nginx already SPA-falls-back any path to index.html (see frontend/nginx.conf). */
@@ -22,15 +24,26 @@ function parseInitialView(): View {
 function App() {
   const [view, setView] = useState<View>(parseInitialView);
   // A preference, not a live setting - only takes effect on the *next* fresh
-  // Daily/Endless game started (see useGame's Javadoc-style comment). Toggling
-  // it never changes an already-in-progress session.
-  const [hardMode, setHardMode] = useState(() => localStorage.getItem(HARD_MODE_KEY) === "true");
+  // game started in that same mode (see useGame's Javadoc-style comment).
+  // Tracked separately per mode (DAILY vs ENDLESS) rather than one shared
+  // value - otherwise toggling it while looking at Daily would also silently
+  // flip it for Endless, showing "[hard]" in the titlebar for a mode whose
+  // actual session isn't hard mode at all. Doesn't apply to CUSTOM, whose
+  // setting is the puzzle creator's choice.
+  const [hardModeByMode, setHardModeByMode] = useState<Record<TogglableMode, boolean>>(() => ({
+    DAILY: localStorage.getItem(hardModeKey("DAILY")) === "true",
+    ENDLESS: localStorage.getItem(hardModeKey("ENDLESS")) === "true",
+  }));
+
+  const hardMode = view.type === "game" && view.mode !== "CUSTOM" ? hardModeByMode[view.mode] : false;
 
   const toggleHardMode = () => {
-    setHardMode((prev) => {
-      const next = !prev;
-      localStorage.setItem(HARD_MODE_KEY, String(next));
-      return next;
+    if (view.type !== "game" || view.mode === "CUSTOM") return;
+    const mode = view.mode;
+    setHardModeByMode((prev) => {
+      const next = !prev[mode];
+      localStorage.setItem(hardModeKey(mode), String(next));
+      return { ...prev, [mode]: next };
     });
   };
 
