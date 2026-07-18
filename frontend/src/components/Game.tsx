@@ -45,6 +45,7 @@ export function Game({ mode, onModeChange, puzzleId, onCreateCustom, hardMode, o
     cursor,
     loading,
     error,
+    notice,
     bootstrapError,
     shake,
     typeLetter,
@@ -55,6 +56,7 @@ export function Game({ mode, onModeChange, puzzleId, onCreateCustom, hardMode, o
     submitGuess,
     startNewGame,
     retryBootstrap,
+    setHardModeForCurrentGame,
   } = useGame(
     mode,
     (finished) => {
@@ -71,6 +73,15 @@ export function Game({ mode, onModeChange, puzzleId, onCreateCustom, hardMode, o
   // game started (it only takes effect on the next fresh game), so this is
   // the only reliable "is hard mode actually on right now" indicator.
   const hardModeSuffix = game?.hardMode ? " · hard mode" : "";
+
+  // Flips the persisted preference (always, for the next fresh game) and also
+  // tries to apply it to the game already on screen - see setHardModeForCurrentGame's
+  // Javadoc-style comment for when that's still possible.
+  const handleToggleHardMode = () => {
+    const next = !hardMode;
+    onToggleHardMode();
+    void setHardModeForCurrentGame(next);
+  };
 
   const statusLine = bootstrapError
     ? "connection error"
@@ -94,11 +105,11 @@ export function Game({ mode, onModeChange, puzzleId, onCreateCustom, hardMode, o
         statusLine={statusLine}
         onCreateCustom={onCreateCustom}
         hardMode={mode === "CUSTOM" ? undefined : hardMode}
-        onToggleHardMode={mode === "CUSTOM" ? undefined : onToggleHardMode}
+        onToggleHardMode={mode === "CUSTOM" ? undefined : handleToggleHardMode}
       />
 
       <div className="game__board-area">
-        <Toast message={error} />
+        <Toast message={error ?? notice} />
         <Board
           wordLength={game?.wordLength ?? DEFAULT_WORD_LENGTH}
           maxGuesses={game?.maxGuesses ?? DEFAULT_MAX_GUESSES}
