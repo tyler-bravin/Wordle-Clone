@@ -10,6 +10,7 @@ import dev.tylerbravin.wordle.dto.LetterResult;
 import dev.tylerbravin.wordle.exception.CustomPuzzleNotFoundException;
 import dev.tylerbravin.wordle.exception.GameAlreadyFinishedException;
 import dev.tylerbravin.wordle.exception.GameNotFoundException;
+import dev.tylerbravin.wordle.exception.HardModeChangeNotAllowedException;
 import dev.tylerbravin.wordle.exception.HardModeViolationException;
 import dev.tylerbravin.wordle.exception.WordNotInDictionaryException;
 import org.springframework.stereotype.Service;
@@ -216,6 +217,35 @@ public class GameService {
         GameSession updated = session.withGuess(result, newStatus);
         sessionStore.save(updated);
 
+        return toResponse(updated);
+    }
+
+    /**
+     * Changes Hard Mode on an existing DAILY/ENDLESS session, but only before any guess has
+     * been made - once a guess has revealed a hint, the session's Hard Mode setting is frozen
+     * for the reasons described on {@link GameSession#hardMode}. This lets the titlebar toggle
+     * apply to the game a player is already looking at, rather than only the next fresh one,
+     * as long as they flip it before typing their first guess.
+     *
+     * @param gameId   id of an existing game session
+     * @param hardMode the new Hard Mode setting
+     * @return updated state
+     * @throws GameNotFoundException if no session exists for this id
+     * @throws HardModeChangeNotAllowedException if a guess has already been made this game, or
+     *         this is a CUSTOM session (whose Hard Mode setting is the puzzle creator's choice)
+     */
+    public GameStateResponse setHardMode(UUID gameId, boolean hardMode) {
+        GameSession session = requireSession(gameId);
+
+        if (session.mode() == GameMode.CUSTOM) {
+            throw new HardModeChangeNotAllowedException("Hard Mode for Custom puzzles is set by the creator");
+        }
+        if (!session.guesses().isEmpty()) {
+            throw new HardModeChangeNotAllowedException("Hard Mode can only be changed before your first guess");
+        }
+
+        GameSession updated = session.withHardMode(hardMode);
+        sessionStore.save(updated);
         return toResponse(updated);
     }
 

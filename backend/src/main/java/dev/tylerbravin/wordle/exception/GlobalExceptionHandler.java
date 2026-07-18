@@ -53,6 +53,11 @@ public class GlobalExceptionHandler {
         return errorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(HardModeChangeNotAllowedException.class)
+    public ResponseEntity<Map<String, Object>> handleHardModeChangeNotAllowed(HardModeChangeNotAllowedException ex) {
+        return errorResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()

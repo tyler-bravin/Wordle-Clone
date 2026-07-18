@@ -6,6 +6,7 @@ import dev.tylerbravin.wordle.dto.GameMode;
 import dev.tylerbravin.wordle.dto.GameStateResponse;
 import dev.tylerbravin.wordle.exception.CustomPuzzleNotFoundException;
 import dev.tylerbravin.wordle.exception.GameNotFoundException;
+import dev.tylerbravin.wordle.exception.HardModeChangeNotAllowedException;
 import dev.tylerbravin.wordle.exception.HardModeViolationException;
 import dev.tylerbravin.wordle.exception.WordNotInDictionaryException;
 import org.junit.jupiter.api.Test;
@@ -229,6 +230,39 @@ class GameServiceTest {
 
         assertThat(response.guesses()).hasSize(2);
         assertThat(response.status().name()).isEqualTo("WON");
+    }
+
+    @Test
+    void setHardModeAppliesLiveToASessionWithNoGuessesYet() {
+        GameStateResponse started = gameService.startDailyGame(false);
+        assertThat(started.hardMode()).isFalse();
+
+        GameStateResponse updated = gameService.setHardMode(started.gameId(), true);
+
+        assertThat(updated.hardMode()).isTrue();
+        assertThat(gameService.getGame(started.gameId()).hardMode()).isTrue();
+    }
+
+    @Test
+    void setHardModeThrowsOnceAGuessHasBeenMade() {
+        GameStateResponse started = gameService.startEndlessGame(null, false).game();
+        gameService.submitGuess(started.gameId(), "crane");
+
+        assertThatThrownBy(() -> gameService.setHardMode(started.gameId(), true))
+                .isInstanceOf(HardModeChangeNotAllowedException.class);
+
+        // The attempted change must not have taken effect.
+        assertThat(gameService.getGame(started.gameId()).hardMode()).isFalse();
+    }
+
+    @Test
+    void setHardModeThrowsForCustomSessionsSinceTheCreatorAlreadyChoseIt() {
+        UUID puzzleId = UUID.randomUUID();
+        customPuzzleStore.save(new CustomPuzzle(puzzleId, "quartz", 6, clock.instant(), clock.instant().plus(Duration.ofHours(24)), false));
+        GameStateResponse started = gameService.startCustomGame(puzzleId);
+
+        assertThatThrownBy(() -> gameService.setHardMode(started.gameId(), true))
+                .isInstanceOf(HardModeChangeNotAllowedException.class);
     }
 
     /** A Clock whose current instant can be advanced mid-test, to simulate day boundaries passing. */

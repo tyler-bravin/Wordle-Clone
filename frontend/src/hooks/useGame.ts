@@ -78,11 +78,23 @@ export function useGame(
   const [cursor, setCursor] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [bootstrapError, setBootstrapError] = useState(false);
   const [shake, setShake] = useState(false);
   const errorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noticeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onFinishedRef = useRef(onFinished);
   onFinishedRef.current = onFinished;
+  // Read via ref, not as a direct useCallback dependency below - hardMode must
+  // only affect the *next* fresh game a player starts, never an in-progress
+  // one. If startFreshDaily/startFreshEndless depended on hardMode directly,
+  // toggling it would change their identity, which cascades through
+  // startFresh -> resumeOrStart -> bootstrap and re-fires the mount-only
+  // bootstrap effect below - silently re-resuming (and resetting the input
+  // of) whatever game is already in progress, which is exactly the "hard
+  // mode turns itself back off" bug this ref exists to prevent.
+  const hardModeRef = useRef(hardMode);
+  hardModeRef.current = hardMode;
 
   const gameIdKey =
     mode === "DAILY" ? DAILY_GAME_ID_KEY : mode === "CUSTOM" ? customGameIdKey(puzzleId ?? "unknown") : ENDLESS_GAME_ID_KEY;
@@ -98,22 +110,29 @@ export function useGame(
     }, 1600);
   }, []);
 
+  /** Same toast slot as showError, minus the shake/error-sound - for informational messages. */
+  const showNotice = useCallback((message: string) => {
+    setNotice(message);
+    if (noticeTimeout.current) clearTimeout(noticeTimeout.current);
+    noticeTimeout.current = setTimeout(() => setNotice(null), 2200);
+  }, []);
+
   const resetInput = useCallback((wordLength: number) => {
     setLetters(makeEmptyLetters(wordLength));
     setCursor(0);
   }, []);
 
   const startFreshDaily = useCallback(async () => {
-    const fresh = await gameApi.startDaily(hardMode);
+    const fresh = await gameApi.startDaily(hardModeRef.current);
     localStorage.setItem(DAILY_GAME_ID_KEY, fresh.gameId);
     setGame(fresh);
     setEndlessBag(null);
     resetInput(fresh.wordLength);
-  }, [hardMode, resetInput]);
+  }, [resetInput]);
 
   const startFreshEndless = useCallback(async () => {
     const savedPlayerId = localStorage.getItem(ENDLESS_PLAYER_ID_KEY);
-    const session = await gameApi.startEndless(savedPlayerId, hardMode);
+    const session = await gameApi.startEndless(savedPlayerId, hardModeRef.current);
     localStorage.setItem(ENDLESS_PLAYER_ID_KEY, session.playerId);
     localStorage.setItem(ENDLESS_GAME_ID_KEY, session.game.gameId);
     setGame(session.game);
@@ -122,7 +141,7 @@ export function useGame(
       totalWordsInBag: session.totalWordsInBag,
     });
     resetInput(session.game.wordLength);
-  }, [hardMode, resetInput]);
+  }, [resetInput]);
 
   const startFreshCustom = useCallback(async () => {
     if (!puzzleId) return;
@@ -306,6 +325,36 @@ export function useGame(
     }
   }, [game, letters, showError, resetInput]);
 
+  /**
+   * Applies a Hard Mode change to the game already on screen, rather than only the next
+   * fresh one, if that's still possible - `GameService.setHardMode` on the backend only
+   * allows this before the first guess is made, since Hard Mode enforcement depends on
+   * hints revealed by earlier guesses (see `HardModeValidator`). Ignored for CUSTOM, whose
+   * Hard Mode setting is the puzzle creator's choice, not the guesser's.
+   *
+   * When it's too late to apply live, surfaces why via the same toast used for errors:
+   * ENDLESS has a "next round" to apply it to, DAILY doesn't (no same-day "next" game -
+   * see ResultPanel, which has no Play Again for DAILY).
+   */
+  const setHardModeForCurrentGame = useCallback(
+    async (next: boolean) => {
+      if (!game || mode === "CUSTOM") return;
+      if (game.guesses.length > 0) {
+        showNotice(
+          mode === "ENDLESS" ? "hard mode set for next game" : "hard mode toggle not available"
+        );
+        return;
+      }
+      try {
+        const updated = await gameApi.setHardMode(game.gameId, next);
+        setGame(updated);
+      } catch (err) {
+        showError(err instanceof ApiRequestError ? err.message : "Something went wrong - try again");
+      }
+    },
+    [game, mode, showNotice, showError]
+  );
+
   return {
     game,
     endlessBag,
@@ -313,6 +362,7 @@ export function useGame(
     cursor,
     loading,
     error,
+    notice,
     bootstrapError,
     shake,
     typeLetter,
@@ -323,5 +373,6 @@ export function useGame(
     submitGuess,
     startNewGame,
     retryBootstrap: bootstrap,
+    setHardModeForCurrentGame,
   };
 }

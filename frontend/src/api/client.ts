@@ -56,6 +56,13 @@ export const gameApi = {
       method: "POST",
       body: JSON.stringify({ guess }),
     }),
+
+  /** Only succeeds server-side if no guess has been made yet this game - see useGame's Javadoc-style comment. */
+  setHardMode: (gameId: string, hardMode: boolean) =>
+    request<GameState>(`/api/game/${gameId}/hard-mode`, {
+      method: "PATCH",
+      body: JSON.stringify({ hardMode }),
+    }),
 };
 
 export const dictionaryApi = {

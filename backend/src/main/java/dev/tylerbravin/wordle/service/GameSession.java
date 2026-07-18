@@ -42,6 +42,10 @@ record GameSession(
         return new GameSession(id, mode, roundNumber, answer, maxGuesses, List.copyOf(updated), newStatus, hardMode);
     }
 
+    GameSession withHardMode(boolean hardMode) {
+        return new GameSession(id, mode, roundNumber, answer, maxGuesses, guesses, status, hardMode);
+    }
+
     boolean isFinished() {
         return status != GameStatus.IN_PROGRESS;
     }
