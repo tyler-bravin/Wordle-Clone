@@ -5,10 +5,12 @@ import dev.tylerbravin.wordle.dto.EndlessSessionResponse;
 import dev.tylerbravin.wordle.dto.EndlessStartRequest;
 import dev.tylerbravin.wordle.dto.GameStateResponse;
 import dev.tylerbravin.wordle.dto.GuessRequest;
+import dev.tylerbravin.wordle.dto.SetHardModeRequest;
 import dev.tylerbravin.wordle.service.GameService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -88,5 +90,21 @@ public class GameController {
             @Valid @RequestBody GuessRequest request
     ) {
         return ResponseEntity.ok(gameService.submitGuess(gameId, request.guess()));
+    }
+
+    /**
+     * Changes Hard Mode on an existing DAILY/ENDLESS session - only allowed before the first
+     * guess is made, so the titlebar toggle can affect the game already on screen instead of
+     * only the next fresh one. See {@link GameService#setHardMode}.
+     *
+     * @param gameId  id of an existing game session
+     * @param request body carrying the new Hard Mode setting
+     */
+    @PatchMapping("/{gameId}/hard-mode")
+    public ResponseEntity<GameStateResponse> setHardMode(
+            @PathVariable UUID gameId,
+            @RequestBody SetHardModeRequest request
+    ) {
+        return ResponseEntity.ok(gameService.setHardMode(gameId, request.hardMode()));
     }
 }
